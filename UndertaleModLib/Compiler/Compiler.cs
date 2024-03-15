@@ -217,6 +217,8 @@ namespace UndertaleModLib.Compiler
             }
 
             CodeWriter codeWriter = AssemblyWriter.AssembleStatement(context, optimizedBlock); // Write assembly code
+            while (Parser.usableFuncNames.Count > 0)
+                context.FunctionsToObliterate.Add(Parser.usableFuncNames.Dequeue());
             context.ResultAssembly = codeWriter.Finish();
 
             if (codeWriter.ErrorMessages.Count > 0)

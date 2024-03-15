@@ -27,6 +27,7 @@ public static partial class Decompiler
 
         public override Statement CleanStatement(DecompileContext context, BlockHLStatement block)
         {
+            if (!context.TempVarMap.ContainsKey(Var.Var.Name)) return this;
             TempVarAssignmentStatement tempVarStatement = context.TempVarMap[Var.Var.Name];
             if (tempVarStatement != null)
             {

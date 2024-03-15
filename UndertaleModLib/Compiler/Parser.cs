@@ -19,6 +19,8 @@ namespace UndertaleModLib.Compiler
 
             // Struct function names that haven't been used yet.
             private static Queue<string> usableStructNames = new();
+            // Anonymous function names that haven't been used yet.
+            public static Queue<string> usableFuncNames = new();
 
             // Not really universally unique nor does it follow the UUID spec,
             // it just needs to be unique in the same script.
@@ -451,9 +453,12 @@ namespace UndertaleModLib.Compiler
                 hasError = false;
 
                 usableStructNames.Clear();
+                usableFuncNames.Clear();
                 foreach (UndertaleCode child in context.OriginalCode.ChildEntries) {
                     if (child.Name.Content.StartsWith("gml_Script____struct___")) {
                         usableStructNames.Enqueue(child.Name.Content["gml_Script_".Length..]);
+                    } else if (child.Name.Content.StartsWith("gml_Script_anon_")) {
+                        usableFuncNames.Enqueue(child.Name.Content["gml_Script_".Length..]);
                     }
                 }
 
@@ -729,6 +734,9 @@ namespace UndertaleModLib.Compiler
                     if (s.Text.StartsWith("___struct___")) {
                         ReportCodeError("Function names cannot start with ___struct___ (they are reserved for structs).", s.Token, false);
                     }
+                    if (s.Text.StartsWith("anon_")) {
+                        ReportCodeError("Function names cannot start with anon_ (they are reserved for anonymous functions).", s.Token, false);
+                    }
                     destination = new Statement(Statement.StatementKind.ExprFuncName, s.Token) { ID = s.ID };
                 }
 
@@ -751,6 +759,11 @@ namespace UndertaleModLib.Compiler
                 result.Children.Add(args);
 
                 if (EnsureTokenKind(TokenKind.CloseParen) == null) return null;
+
+                result.Text = "";
+                if (destination is not null) {
+                    result.Text = destination.Text;
+                }
 
                 // Semi-hack, this Statement is just used as a boolean
                 // to see if a function is a constructor or not
@@ -1726,8 +1739,7 @@ namespace UndertaleModLib.Compiler
                     // Create a new function
                     int i = context.Data.Code.Count;
                     do {
-                        varName = "___struct___utmt_" + context.OriginalCode.Name.Content +
-                            "__" + uuidCounter++.ToString();
+                        varName = "___struct___" + uuidCounter++.ToString() + "_" + context.OriginalCode.Name.Content;
                         i++;
                     } while (context.Data.KnownSubFunctions.ContainsKey(varName));
                 }
