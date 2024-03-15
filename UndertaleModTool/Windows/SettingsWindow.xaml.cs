@@ -81,6 +81,15 @@ namespace UndertaleModTool
                 Settings.Save();
             }
         }
+        public static bool ObjectFunctionDefs
+        {
+            get => Settings.Instance.ObjectFunctionDefs;
+            set
+            {
+                Settings.Instance.ObjectFunctionDefs = value;
+                Settings.Save();
+            }
+        }
 
         public static bool ProfileMessageShown
         {

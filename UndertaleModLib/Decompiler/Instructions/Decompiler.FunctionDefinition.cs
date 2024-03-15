@@ -24,6 +24,9 @@ public static partial class Decompiler
         public FunctionType Subtype { get; private set; }
         public bool IsStatement = false; // I know it's an expression, yes. But I'm not duplicating the rest.
 
+        // Used for object function definitions
+        public string forceFunctionName = "";
+
         internal List<Expression> Arguments;
 
         public FunctionDefinition(UndertaleFunction target, UndertaleCode functionBodyCodeEntry, Block functionBodyEntryBlock, FunctionType type)
@@ -82,29 +85,34 @@ public static partial class Decompiler
                     {
                         sb.Append(" ");
 
-                        // For further optimization, we could *probably* create a dictionary that's just flipped KVPs (assuming there are no dup. values).
-                        // Doing so would save the need for LINQ and what-not. Not that big of an issue, but still an option.
-                        Dictionary<string, UndertaleFunction> subFuncs = context.GlobalContext.Data.KnownSubFunctions;
-                        KeyValuePair<string, UndertaleFunction> kvp = subFuncs.FirstOrDefault(x => x.Value == Function);
-
-                        // If we found an associated sub-function, use the key as the name.
-                        if (kvp.Key != null)
-                            sb.Append(kvp.Key);
+                        if (forceFunctionName != "")
+                            sb.Append(forceFunctionName);
                         else
                         {
-                            //Attempt to find function names before going with the last functions' name
-                            bool gotFuncName = false;
-                            if (Function.Name.Content.StartsWith("gml_Script_"))
+                            // For further optimization, we could *probably* create a dictionary that's just flipped KVPs (assuming there are no dup. values).
+                            // Doing so would save the need for LINQ and what-not. Not that big of an issue, but still an option.
+                            Dictionary<string, UndertaleFunction> subFuncs = context.GlobalContext.Data.KnownSubFunctions;
+                            KeyValuePair<string, UndertaleFunction> kvp = subFuncs.FirstOrDefault(x => x.Value == Function);
+
+                            // If we found an associated sub-function, use the key as the name.
+                            if (kvp.Key != null)
+                                sb.Append(kvp.Key);
+                            else
                             {
-                                string funcName = Function.Name.Content.Substring("gml_Script_".Length);
-                                if (context.Statements[0].Any(x => x is AssignmentStatement && (x as AssignmentStatement).Destination.Var.Name.Content == funcName))
+                                //Attempt to find function names before going with the last functions' name
+                                bool gotFuncName = false;
+                                if (Function.Name.Content.StartsWith("gml_Script_"))
                                 {
-                                    sb.Append(funcName);
-                                    gotFuncName = true;
+                                    string funcName = Function.Name.Content.Substring("gml_Script_".Length);
+                                    if (context.Statements[0].Any(x => x is AssignmentStatement && (x as AssignmentStatement).Destination.Var.Name.Content == funcName))
+                                    {
+                                        sb.Append(funcName);
+                                        gotFuncName = true;
+                                    }
                                 }
+                                if(!gotFuncName)
+                                    sb.Append((context.Statements[0].Last() as AssignmentStatement).Destination.Var.Name.Content);
                             }
-                            if(!gotFuncName)
-                                sb.Append((context.Statements[0].Last() as AssignmentStatement).Destination.Var.Name.Content);
                         }
                     }
                     sb.Append("(");

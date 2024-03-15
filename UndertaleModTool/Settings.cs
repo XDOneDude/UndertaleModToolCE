@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using UndertaleModLib.Decompiler;
+using UndertaleModLib.Compiler;
 
 namespace UndertaleModTool
 {
@@ -25,11 +26,19 @@ namespace UndertaleModTool
 
 
 
-        private bool _ptAutoStates = true;
+        private bool _ptAutoStates = false;
 
         public bool PTAutoStates { get => _ptAutoStates; set {
             _ptAutoStates = value;
             GlobalDecompileContext.PTAutoStates = value;
+        }}
+
+        private bool _objectFunctionDefs = false;
+
+        public bool ObjectFunctionDefs { get => _objectFunctionDefs; set {
+            _objectFunctionDefs = value;
+            GlobalDecompileContext.ObjectFunctionDefs = value;
+            CompileContext.ObjectFunctionDefs = value;
         }}
 
         public bool ProfileMessageShown { get; set; } = false;

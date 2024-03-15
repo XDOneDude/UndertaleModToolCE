@@ -568,7 +568,28 @@ namespace UndertaleModLib.Decompiler
                                         // This function is somewhere inside this UndertaleCode block
                                         // inline the definition
                                         Block functionBodyEntryBlock = blocks[functionBody.Offset / 4];
-                                        stack.Push(new FunctionDefinition(argCodeFunc.Target, functionBody, functionBodyEntryBlock, type));
+                                        var def = new FunctionDefinition(argCodeFunc.Target, functionBody, functionBodyEntryBlock, type);
+                                        stack.Push(def);
+
+                                        if (context.IsObjectCode && (i + 3) < block.Instructions.Count) {
+                                            var name = argCodeFunc.Target.Name;
+                                            var pushIInstr = block.Instructions[i + 2];
+                                            if (
+                                                pushIInstr.Kind == UndertaleInstruction.Opcode.PushI &&
+                                                pushIInstr.Type1 == UndertaleInstruction.DataType.Int16 &&
+                                                (short)pushIInstr.Value == -6
+                                            ) {
+                                                var popInstr = block.Instructions[i + 3];
+                                                if (
+                                                    popInstr.Kind == UndertaleInstruction.Opcode.Pop &&
+                                                    popInstr.Destination.Target.InstanceType == UndertaleInstruction.InstanceType.Self
+                                                ) {
+                                                    // object function definition
+                                                    def.forceFunctionName = popInstr.Destination.Target.Name.Content;
+                                                }
+                                            }
+                                        }
+
                                         workQueue.Push(new Tuple<Block, List<TempVarReference>>(functionBodyEntryBlock, new List<TempVarReference>()));
                                         break;
                                     }

@@ -13,6 +13,7 @@ public class GlobalDecompileContext
 
     public bool EnableStringLabels;
     public static bool PTAutoStates = true;
+    public static bool ObjectFunctionDefs = false;
 
     public List<string> DecompilerWarnings = new List<string>();
 

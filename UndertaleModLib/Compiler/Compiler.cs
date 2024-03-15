@@ -33,6 +33,8 @@ namespace UndertaleModLib.Compiler
         public List<UndertaleInstruction> ResultAssembly = null;
 
         public List<string> FunctionsToObliterate = new();
+        public static bool ObjectFunctionDefs = false;
+        public bool IsObjectCode = false;
 
         public Compiler.MainThreadDelegate MainThreadDelegate = (f) => { f(); };
 
@@ -96,6 +98,12 @@ namespace UndertaleModLib.Compiler
             FunctionsToObliterate.Clear();
             if (redoAssets || assetIds.Count == 0)
                 MakeAssetDictionary();
+
+            // Used to determine how to compile function definitions
+            // (as they work differently between objects and scripts)
+            // TODO: we shouldn't detect if the code is for an object or not from the name,
+            // but there isn't really any other way to do so
+            IsObjectCode = CompileContext.ObjectFunctionDefs && OriginalCode.Name.Content.StartsWith("gml_Object_");
         }
 
         private void MakeAssetDictionary()

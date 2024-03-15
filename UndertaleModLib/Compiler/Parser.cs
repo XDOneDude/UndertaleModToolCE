@@ -779,6 +779,11 @@ namespace UndertaleModLib.Compiler
                     return result;
                 else // Whatever you call non-anonymous definitions
                 {
+                    if (result.Text != "" && context.IsObjectCode) {
+                        // Object function definition
+                        result.Text = result.Text + "_" + context.OriginalCode.Name.Content;
+                    }
+
                     Statement trueResult = new Statement(Statement.StatementKind.Assign, new Lexer.Token(TokenKind.Assign));
                     trueResult.Children.Add(destination);
                     trueResult.Children.Add(new Statement(Statement.StatementKind.Token, trueResult.Token));

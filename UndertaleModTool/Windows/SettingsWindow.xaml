@@ -64,6 +64,9 @@
             <CheckBox Grid.Row="6" Grid.Column="0" Margin="3" Content="" IsChecked="{Binding PTAutoStates}"/>
             <TextBlock Grid.Row="6" Grid.Column="0" Margin="25 2 2 2" Text="Show Pizza Tower state names" ToolTip="Shows state names instead of IDs. Pizza Tower-specific. Enabled by default."/>
 
+            <CheckBox Grid.Row="6" Grid.Column="2" Margin="3" Content="" IsChecked="{Binding ObjectFunctionDefs}"/>
+            <TextBlock Grid.Row="6" Grid.Column="2" Margin="25 2 2 2" Text="GMS2.3 object function definitions" ToolTip="Enables more GameMaker-accurate behavior for functions defined in objects. This makes Pizza Tower obj_debugcontroller create (de)compile correctly, but might break a few mods. Experimental, disabled by default."/>
+
             <Separator Grid.Row="7" Grid.ColumnSpan="4" Margin="10"/>
 
             <CheckBox Grid.Row="8" Grid.Column="0" Margin="3" Content="" IsChecked="{Binding EnableDarkMode}"/>

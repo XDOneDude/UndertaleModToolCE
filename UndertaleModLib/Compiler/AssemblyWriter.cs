@@ -1479,11 +1479,13 @@ namespace UndertaleModLib.Compiler
                             });
                             cw.typeStack.Push(DataType.Variable);
 
+                            bool isObjFuncDef = cw.compileContext.IsObjectCode && !isAnon;
+
                             if (!isAnon) {
                                 cw.Emit(Opcode.Dup, DataType.Variable).Extra = 0;
                                 if (isStructDef) {
                                     cw.Emit(Opcode.PushI, DataType.Int16).Value = (short)-16;
-                                } else if (isConstructor) {
+                                } else if (isConstructor || isObjFuncDef) {
                                     cw.Emit(Opcode.PushI, DataType.Int16).Value = (short)-6;
                                 } else {
                                     cw.Emit(Opcode.PushI, DataType.Int16).Value = (short)-1; // todo: -6 sometimes?
