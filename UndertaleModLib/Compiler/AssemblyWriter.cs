@@ -1225,7 +1225,7 @@ namespace UndertaleModLib.Compiler
                     funcVar.Text = fc.Text;
                     AssembleVariablePush(cw, funcVar, false, false, false, isSelf ? InstanceType.Builtin : InstanceType.Stacktop);
 
-                    cw.Emit(Opcode.CallV, DataType.Variable, DataType.Variable).Extra = argCount;
+                    cw.Emit(Opcode.CallV, DataType.Variable).Extra = argCount;
                 }
                 else if (fc.Children[0].Text == "new")
                 {
