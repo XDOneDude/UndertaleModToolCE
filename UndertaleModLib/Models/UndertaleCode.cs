@@ -602,6 +602,12 @@ public class UndertaleInstruction : UndertaleObject
                 byte TypePair = reader.ReadByte();
                 Type1 = (DataType)(TypePair & 0xf);
                 Type2 = (DataType)(TypePair >> 4);
+
+                // Fix data.wins affected by a bug in UTMTCE 0.4.0 where self calls
+                // triggered the below error
+                if (Kind == Opcode.CallV && Type2 != (byte)0) {
+                    Type2 = (byte)0;
+                }
 #if DEBUG
                 if (GetInstructionType(Kind) == InstructionType.SingleTypeInstruction && Type2 != (byte)0)
                     throw new IOException("Second type should be 0 in " + Kind.ToString().ToUpper(CultureInfo.InvariantCulture));
