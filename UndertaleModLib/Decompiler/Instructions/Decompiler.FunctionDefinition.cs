@@ -75,6 +75,11 @@ public static partial class Decompiler
                 var oldDecompilingStruct = context.DecompilingStruct;
                 var oldReplacements = context.ArgumentReplacements;
 
+                // make sure that if you declare a local variable in one function
+                // and again in another, both functions have the var keyword
+                // instead of just the first
+                context.LocalVarDefinesUsed.Push(new HashSet<string>());
+
                 if (Subtype == FunctionType.Struct)
                     context.DecompilingStruct = true;
                 else
@@ -128,14 +133,6 @@ public static partial class Decompiler
                         sb.Append("constructor ");
                     sb.Append("//");
                     sb.Append(Function.Name.Content);
-
-                    // make sure that if you declare a local variable in one function
-                    // and again in another, both functions have the var keyword
-                    // instead of just the first
-                    // this doesn't account for variables declared outside
-                    // functions, but that doesn't happen that much in places with
-                    // function definitions
-                    context.LocalVarDefinesUsed.Clear();
                 }
 
                 var statements = context.Statements[FunctionBodyEntryBlock.Address.Value];
@@ -193,6 +190,7 @@ public static partial class Decompiler
                 else
                     sb.Append("{}");
                 context.DecompilingStruct = oldDecompilingStruct;
+                context.LocalVarDefinesUsed.Pop();
             }
             else
             {

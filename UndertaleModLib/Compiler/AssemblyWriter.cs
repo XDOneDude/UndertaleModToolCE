@@ -155,7 +155,8 @@ namespace UndertaleModLib.Compiler
                                             locals.Locals.Add(new UndertaleCodeLocals.LocalVar() { Index = (uint)locals.Locals.Count, Name = compileContext.Data?.Strings?.MakeString(name) });
                                     }
                                 }
-                                compileContext.OriginalCode.LocalsCount = (uint)locals.Locals.Count;
+                                // +1 for `arguments`
+                                compileContext.OriginalCode.LocalsCount = (uint)compileContext.LocalVarsStack.Peek().Count + 1;
                                 if (compileContext.OriginalCode.LocalsCount > compileContext.Data.MaxLocalVarCount)
                                     compileContext.Data.MaxLocalVarCount = compileContext.OriginalCode.LocalsCount;
                             });
@@ -261,7 +262,7 @@ namespace UndertaleModLib.Compiler
                                     ParentEntry = compileContext.OriginalCode,
                                     Offset = patch.Offset,
                                     ArgumentsCount = (ushort)patch.ArgCount,
-                                    LocalsCount = compileContext.OriginalCode.LocalsCount // todo: use just the locals for the individual script
+                                    LocalsCount = patch.LocalsCount
                                 };
                                 compileContext.OriginalCode.ChildEntries.Add(childEntry);
                                 int childEntryIndex = compileContext.Data.Code.IndexOf(compileContext.OriginalCode) + compileContext.OriginalCode.ChildEntries.Count;
@@ -385,6 +386,7 @@ namespace UndertaleModLib.Compiler
                 public UndertaleInstruction Target;
                 public string Name;
                 public int ArgCount;
+                public uint LocalsCount = 0;
                 public uint Offset;
                 public bool isNewFunc = false;
                 public bool isConstructor = false;
@@ -1034,6 +1036,7 @@ namespace UndertaleModLib.Compiler
                                     VarType = VariableType.Normal
                                 });
                                 cw.compileContext.LocalVars["$$$$temp$$$$"] = "$$$$temp$$$$";
+                                cw.compileContext.LocalVarsStack.Peek().Add("$$$$temp$$$$");
                             }
                             foreach (OtherContext oc in cw.otherContexts)
                             {
@@ -1430,31 +1433,42 @@ namespace UndertaleModLib.Compiler
                             if (func != null)
                                 cw.compileContext.Data.KnownSubFunctions.TryAdd(funcDefName, func);
                             
+                            FunctionPatch patch = null;
+                            UndertaleCode childEntry = null;
+
                             if (cw.compileContext.Data.KnownSubFunctions.ContainsKey(funcDefName))
                             {
                                 string subFunctionName = cw.compileContext.Data.KnownSubFunctions[funcDefName].Name.Content;
-                                UndertaleCode childEntry = cw.compileContext.OriginalCode.ChildEntries.ByName(subFunctionName);
+                                childEntry = cw.compileContext.OriginalCode.ChildEntries.ByName(subFunctionName);
                                 childEntry.Offset = cw.offset * 4;
                                 childEntry.ArgumentsCount = (ushort)e.Children[0].Children.Count;
-                                childEntry.LocalsCount = cw.compileContext.OriginalCode.LocalsCount; // todo: use just the locals for the individual script
                             }
                             else // we're making a new function baby
                             {
-                                cw.funcPatches.Add(new FunctionPatch()
+                                patch = new FunctionPatch()
                                 {
                                     Name = funcDefName,
                                     Offset = cw.offset * 4,
                                     ArgCount = (ushort)e.Children[0].Children.Count,
                                     isNewFunc = true,
                                     isConstructor = isConstructor
-                                });
+                                };
+                                cw.funcPatches.Add(patch);
                             }
-
+                            
+                            cw.compileContext.LocalVarsStack.Push(new HashSet<string>());
                             cw.loopContexts.Push(new LoopContext(endPatch, startPatch));
                             AssembleStatement(cw, e.Children[2]); // body
                             AssembleExit(cw);
                             cw.loopContexts.Pop();
                             endPatch.Finish(cw);
+
+                            if (childEntry is not null) {
+                                childEntry.LocalsCount = (uint)cw.compileContext.LocalVarsStack.Peek().Count;
+                            } else if (patch is not null) {
+                                patch.LocalsCount = (uint)cw.compileContext.LocalVarsStack.Peek().Count;
+                            }
+                            cw.compileContext.LocalVarsStack.Pop();
 
                             cw.funcPatches.Add(new FunctionPatch()
                             {
@@ -2114,6 +2128,7 @@ namespace UndertaleModLib.Compiler
                     {
                         if (cw.compileContext.LocalVars.ContainsKey(variableName))
                         {
+                            cw.compileContext.LocalVarsStack.Peek().Add(variableName);
                             fix2.ID = -7; // local
                         }
                         else
@@ -2365,6 +2380,7 @@ namespace UndertaleModLib.Compiler
                     {
                         if (cw.compileContext.LocalVars.ContainsKey(variableName))
                         {
+                            cw.compileContext.LocalVarsStack.Peek().Add(variableName);
                             fix2.ID = -7; // local
                         } 
                         else if (cw.compileContext.GlobalVars.ContainsKey(variableName))

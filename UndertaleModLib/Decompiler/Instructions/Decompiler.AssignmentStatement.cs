@@ -67,7 +67,7 @@ public static partial class Decompiler
                 {
                     var locals = data.CodeLocals.For(context.TargetCode);
                     // Stop decompiler from erroring on missing CodeLocals
-                    if (locals != null && locals.HasLocal(varName) && context.LocalVarDefinesUsed.Add(varName)) {
+                    if (locals != null && locals.HasLocal(varName) && context.LocalVarDefinesUsed.Peek().Add(varName)) {
                         HasVarKeyword = true;
                         context.LocalVarDefines.Add(varName);
                     }

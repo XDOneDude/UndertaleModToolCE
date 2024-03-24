@@ -22,6 +22,7 @@ namespace UndertaleModLib.Compiler
         public bool TypedAssetRefs => Data.IsVersionAtLeast(2023, 8);
         public int LastCompiledArgumentCount = 0;
         public Dictionary<string, string> LocalVars = new Dictionary<string, string>();
+        public Stack<HashSet<string>> LocalVarsStack = new Stack<HashSet<string>>();
         public Dictionary<string, string> GlobalVars = new Dictionary<string, string>();
         public Dictionary<string, Dictionary<string, int>> Enums = new Dictionary<string, Dictionary<string, int>>();
         public UndertaleCode OriginalCode;
@@ -44,6 +45,7 @@ namespace UndertaleModLib.Compiler
             Data = data;
             OriginalCode = oldCode;
             OriginalReferencedLocalVars = OriginalCode?.FindReferencedLocalVars();
+            LocalVarsStack.Push(new HashSet<string>());
         }
 
         public int GetAssetIndexByName(string name)

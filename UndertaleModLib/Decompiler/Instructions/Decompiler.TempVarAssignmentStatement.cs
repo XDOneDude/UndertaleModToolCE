@@ -21,7 +21,7 @@ public static partial class Decompiler
         public override string ToString(DecompileContext context)
         {
             //TODO: why is there a GMS2Check for this? var exists in gms1.4 as well
-            if (context.GlobalContext.Data?.IsGameMaker2() ?? false && !HasVarKeyword && context.LocalVarDefinesUsed.Add(Var.Var.Name)) {
+            if (context.GlobalContext.Data?.IsGameMaker2() ?? false && !HasVarKeyword && context.LocalVarDefinesUsed.Peek().Add(Var.Var.Name)) {
                 HasVarKeyword = true;
                 context.LocalVarDefines.Add(Var.Var.Name);
             }

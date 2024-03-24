@@ -586,7 +586,7 @@ namespace UndertaleModLib.Decompiler
                                         var def = new FunctionDefinition(argCodeFunc.Target, functionBody, functionBodyEntryBlock, type);
                                         stack.Push(def);
 
-                                        if (context.IsObjectCode && (i + 3) < block.Instructions.Count) {
+                                        if (GlobalDecompileContext.ObjectFunctionDefs && (context.Object is not null) && (i + 3) < block.Instructions.Count) {
                                             var name = argCodeFunc.Target.Name;
                                             var pushIInstr = block.Instructions[i + 2];
                                             if (

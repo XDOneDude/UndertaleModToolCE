@@ -16,15 +16,13 @@ public class DecompileContext
     public static bool GMS2_3;
     public bool BooleanTypeEnabled => GlobalContext.Data.IsVersionAtLeast(2, 3, 7);
     public bool AssetResolutionEnabled => !GlobalContext.Data.IsVersionAtLeast(2023, 8);
-    public bool IsObjectCode = false;
 
     public DecompileContext(GlobalDecompileContext globalContext, UndertaleCode code, bool computeObject = true)
     {
         GlobalContext = globalContext;
         TargetCode = code;
 
-        // See the comment for the equivalent variable in Compiler.CompileContext
-        IsObjectCode = GlobalDecompileContext.ObjectFunctionDefs && TargetCode.Name.Content.StartsWith("gml_Object_");
+        LocalVarDefinesUsed.Push(new HashSet<string>());
 
         if (code.ParentEntry != null)
             throw new InvalidOperationException("This code block represents a function nested inside " + code.ParentEntry.Name + " - decompile that instead");
@@ -107,7 +105,7 @@ public class DecompileContext
 
     #region Local var management
     public HashSet<string> LocalVarDefines = new HashSet<string>();
-    public HashSet<string> LocalVarDefinesUsed = new HashSet<string>();
+    public Stack<HashSet<string>> LocalVarDefinesUsed = new Stack<HashSet<string>>();
     #endregion
 
     #region GMS 2.3+ Function management
