@@ -969,7 +969,11 @@ namespace UndertaleModLib.Decompiler
                     Block nextBlock = GetBlock(instr.Address + 1);
                     currentBlock.conditionalExit = false;
                     currentBlock.nextBlockTrue = nextBlock;
-                    currentBlock.nextBlockFalse = nextBlock;
+                    if (instr.Kind == UndertaleInstruction.Opcode.PopEnv) {
+                        currentBlock.nextBlockFalse = nextBlock;
+                    } else {
+                        currentBlock.nextBlockFalse = GetBlock((uint)(instr.Address + instr.JumpOffset));
+                    }
                     currentBlock = null;
                 }
                 else if (instr.Kind == UndertaleInstruction.Opcode.Ret || instr.Kind == UndertaleInstruction.Opcode.Exit)
@@ -1335,14 +1339,18 @@ namespace UndertaleModLib.Decompiler
                 {
                     DebugUtil.Assert(!block.conditionalExit, "Block ending with pushenv does not have a conditional exit");
                     PushEnvStatement stmt = (block.Statements.Last() as PushEnvStatement);
+                    Block _stopAt = block.nextBlockFalse.nextBlockTrue.nextBlockTrue;
+                    Block _startAt = block.nextBlockFalse;
                     block = block.nextBlockTrue;
                     output.Statements.Add(new WithHLStatement()
                     {
                         NewEnv = stmt.NewEnv,
-                        Block = HLDecompileBlocks(context, ref block, blocks, loops, reverseDominators, alreadyVisited, null, stopAt, null, false, depth + 1)
+                        Block = HLDecompileBlocks(context, ref block, blocks, loops, reverseDominators, alreadyVisited, null, _stopAt, _stopAt, false, depth + 1)
                     });
+                    block = _startAt;
                     if (block == null)
                         break;
+                    
                 }
                 else if (block.Statements.Count > 0 && block.Statements.Last() is PopEnvStatement)
                 {
