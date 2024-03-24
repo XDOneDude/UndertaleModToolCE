@@ -68,6 +68,7 @@ namespace UndertaleModLib.Compiler
                     valueNumber = copyFrom.valueNumber;
                     valueString = copyFrom.valueString;
                     valueInt64 = copyFrom.valueInt64;
+                    isBool = copyFrom.isBool;
                 }
             }
 
@@ -3013,6 +3014,16 @@ namespace UndertaleModLib.Compiler
                     if (context.BuiltInList.Constants.TryGetValue(identifier, out double val))
                     {
                         constant.valueNumber = val;
+                        return true;
+                    }
+                    if (identifier == "true") {
+                        constant.isBool = context.BooleanTypeEnabled;
+                        constant.valueNumber = 1.0;
+                        return true;
+                    }
+                    if (identifier == "false") {
+                        constant.isBool = context.BooleanTypeEnabled;
+                        constant.valueNumber = 0.0;
                         return true;
                     }
                     return false;

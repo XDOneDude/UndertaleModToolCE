@@ -268,7 +268,13 @@ namespace UndertaleModLib.Decompiler
                         break;
 
                     case UndertaleInstruction.Opcode.Conv:
-                        stack.Push(new ExpressionCast(instr.Type2, stack.Pop()));
+                        {
+                            Expression val = stack.Pop();
+                            if (context.BooleanTypeEnabled && instr.Type1 == UndertaleInstruction.DataType.Boolean) {
+                                val.CastToBoolean();
+                            }
+                            stack.Push(new ExpressionCast(instr.Type2, val));
+                        }
                         break;
 
                     case UndertaleInstruction.Opcode.Mul:
@@ -289,7 +295,13 @@ namespace UndertaleModLib.Decompiler
 
                     case UndertaleInstruction.Opcode.Cmp:
                         Expression aa2 = stack.Pop();
+                        if (context.BooleanTypeEnabled && instr.Type1 == UndertaleInstruction.DataType.Boolean) {
+                            aa2.CastToBoolean();
+                        }
                         Expression aa1 = stack.Pop();
+                        if (context.BooleanTypeEnabled && instr.Type2 == UndertaleInstruction.DataType.Boolean) {
+                            aa1.CastToBoolean();
+                        }
                         stack.Push(new ExpressionCompare(instr.ComparisonKind, aa1, aa2));
                         break;
 
@@ -389,6 +401,9 @@ namespace UndertaleModLib.Decompiler
                                 val = stack.Pop();
                             if (val != null)
                             {
+                                if (context.BooleanTypeEnabled && instr.Type2 == UndertaleInstruction.DataType.Boolean) {
+                                    val.CastToBoolean();
+                                }
                                 if ((target.VarType == UndertaleInstruction.VariableType.StackTop || target.VarType == UndertaleInstruction.VariableType.Array) && target.InstType.WasDuplicated)
                                 {
                                     // Almost safe to assume that this is a +=, -=, etc.
