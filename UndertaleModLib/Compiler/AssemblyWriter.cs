@@ -2040,7 +2040,7 @@ namespace UndertaleModLib.Compiler
                         if (
                             e.Children.Count > 1 && 
                             e.Children[0].Kind == Parser.Statement.StatementKind.ExprFunctionCall &&
-                            e.Children[0].Text.StartsWith("@@")
+                            e.Children[0].Text == "@@This@@"
                         ) {
                             isSelf = true;
                             PushFunctionArgs(cw, e.Children[1]);

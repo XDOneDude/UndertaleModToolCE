@@ -1484,6 +1484,19 @@ namespace UndertaleModLib.Compiler
                 while (remainingStageOne.Count > 0 && IsNextTokenDiscard(TokenKind.Dot))
                 {
                     Statement next = ParseSingleVar(context);
+                    // GMS2.3 @@Other@@/@@This@@ doesn't apply in simple variable gets like `other.variable`
+                    if (!combine && next.Kind == Statement.StatementKind.ExprSingleVariable
+                        && (left.Text == "@@Other@@" || left.Text == "@@This@@")
+                    ) {
+                        ExpressionConstant constant;
+                        ResolveIdentifier(context, left.Text == "@@Other@@" ? "other" : "self", out constant);
+                        if (constant is not null) {
+                            result.Children.Remove(left);
+                            left = new Statement(Statement.StatementKind.ExprConstant);
+                            left.Constant = constant;
+                            combine = true;
+                        }
+                    }
                     if (combine)
                     {
                         if (left.Constant.kind != ExpressionConstant.Kind.Number)

@@ -2806,10 +2806,8 @@ namespace UndertaleModLib.Compiler
 
             // Moving on to constants
             Constants = new Dictionary<string, double>();
-            if (!CompileContext.GMS2_3) {
-                Constants["self"] = -1.0;
-                Constants["other"] = -2.0;
-            }
+            Constants["self"] = -1.0;
+            Constants["other"] = -2.0;
             Constants["all"] = -3.0;
             Constants["noone"] = -4.0;
             Constants["global"] = -5.0;

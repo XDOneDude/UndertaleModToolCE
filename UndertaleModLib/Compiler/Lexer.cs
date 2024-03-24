@@ -510,8 +510,8 @@ namespace UndertaleModLib.Compiler
                     "mod" => new Token(Token.TokenKind.Mod, cr.GetPositionInfo(index)),
                     "div" => new Token(Token.TokenKind.Div, cr.GetPositionInfo(index)),
                     // In GMS2.3, these keywords are special function calls instead of constants
-                    "self" when CompileContext.GMS2_3 => new Token(Token.TokenKind.KeywordSelf, cr.GetPositionInfo(index)),
-                    "other" when CompileContext.GMS2_3 => new Token(Token.TokenKind.KeywordOther, cr.GetPositionInfo(index)),
+                    "self" when CompileContext.GMS2_3 => new Token(Token.TokenKind.KeywordSelf, "self", cr.GetPositionInfo(index)),
+                    "other" when CompileContext.GMS2_3 => new Token(Token.TokenKind.KeywordOther, "other", cr.GetPositionInfo(index)),
                     _ => new Token(Token.TokenKind.Identifier, identifierText, cr.GetPositionInfo(index)),
                 };
             }
