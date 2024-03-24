@@ -1417,6 +1417,7 @@ namespace UndertaleModLib.Compiler
 
                             bool isConstructor = e.Children[1].Text == "constructor";
                             bool isStructDef = funcDefName.StartsWith("___struct___");
+                            bool isScriptNamedFunction = cw.compileContext.OriginalCode.Name.Content == ("gml_GlobalScript_" + funcDefName);
                             
                             Patch startPatch = Patch.StartHere(cw);
                             Patch endPatch = Patch.Start();
@@ -1487,10 +1488,12 @@ namespace UndertaleModLib.Compiler
                                 cw.Emit(Opcode.Dup, DataType.Variable).Extra = 0;
                                 if (isStructDef) {
                                     cw.Emit(Opcode.PushI, DataType.Int16).Value = (short)-16;
-                                } else if (isConstructor || isObjFuncDef) {
+                                } else if (isConstructor || isObjFuncDef || !isScriptNamedFunction) {
                                     cw.Emit(Opcode.PushI, DataType.Int16).Value = (short)-6;
                                 } else {
-                                    cw.Emit(Opcode.PushI, DataType.Int16).Value = (short)-1; // todo: -6 sometimes?
+                                    // -1 when the function is named the same as the script name
+                                    // (normally)
+                                    cw.Emit(Opcode.PushI, DataType.Int16).Value = (short)-1; 
                                 }
                             }
                         }
