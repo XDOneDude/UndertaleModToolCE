@@ -762,12 +762,15 @@ namespace UndertaleModLib.Decompiler
                                     statements.Add(new CommentStatement("setowner: " + (owner ?? "<null>")));
                                     */
                                     break;
-                                case -6: // isstaticok, returns a boolean used essentially as an if statement for static variables. stubbed for now
-                                    stack.Push(new ExpressionConstant(UndertaleInstruction.DataType.Int32, (int)1, false));
+                                case -6: // GMS2.3+, isstaticok
+                                    ExpressionConstant constant = new ExpressionConstant(UndertaleInstruction.DataType.Int32, (int)0, false);
+                                    constant.IsStatic = true;
+                                    stack.Push(constant);
                                     break;
-                                case -7: // setstatic
+                                case -7: // GMS2.3+, setstatic
+                                    // doesn't need to be implemented
                                     break;
-                                case -10: // GMS2.3+, chknullish
+                                case -10: // GMS2.3.7+, chknullish
 
                                     // TODO: Implement nullish operator in decompiled output.
                                     // Appearance in assembly is:

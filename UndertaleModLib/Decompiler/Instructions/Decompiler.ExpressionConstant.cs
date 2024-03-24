@@ -13,6 +13,7 @@ public static partial class Decompiler
     {
         public object Value;
         public bool IsPushE;
+        public bool IsStatic;
         internal AssetIDType AssetType = AssetIDType.Other;
 
         public ExpressionConstant(UndertaleInstruction.DataType type, object value, bool isPushE = false)

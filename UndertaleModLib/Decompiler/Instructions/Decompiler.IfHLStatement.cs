@@ -145,6 +145,17 @@ public static partial class Decompiler
         public override string ToString(DecompileContext context)
         {
             StringBuilder sb = new StringBuilder();
+
+            // "if statement" generated for static variables, using isttaticok.
+            // since that is a purely-internal thing, just append its contents
+            // without anything else
+            if (condition is ExpressionConstant constant && constant.IsStatic) {
+                context.IndentationLevel--;
+                sb.Append(falseBlock.ToString(context, false, true));
+                context.IndentationLevel++;
+                return sb.Append('\n').ToString().TrimStart(' ');
+            }
+
             string cond;
             if (condition is ExpressionCompare)
                 cond = (condition as ExpressionCompare).ToStringWithParen(context);
