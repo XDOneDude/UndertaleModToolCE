@@ -2126,7 +2126,7 @@ namespace UndertaleModLib.Compiler
                     string variableName = e.Text;
                     if (!fix2.WasIDSet || fix2.ID >= 100000)
                     {
-                        if (cw.compileContext.LocalVars.ContainsKey(variableName))
+                        if (e.InstanceType == InstanceType.Local || cw.compileContext.LocalVarsStack.Peek().Contains(variableName))
                         {
                             cw.compileContext.LocalVarsStack.Peek().Add(variableName);
                             fix2.ID = -7; // local
@@ -2378,7 +2378,7 @@ namespace UndertaleModLib.Compiler
                     string variableName = s.Text;
                     if (!fix2.WasIDSet || fix2.ID >= 100000)
                     {
-                        if (cw.compileContext.LocalVars.ContainsKey(variableName))
+                        if (s.InstanceType == InstanceType.Local || cw.compileContext.LocalVarsStack.Peek().Contains(variableName))
                         {
                             cw.compileContext.LocalVarsStack.Peek().Add(variableName);
                             fix2.ID = -7; // local

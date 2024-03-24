@@ -65,9 +65,7 @@ public static partial class Decompiler
                 var data = context.GlobalContext.Data;
                 if (data != null)
                 {
-                    var locals = data.CodeLocals.For(context.TargetCode);
-                    // Stop decompiler from erroring on missing CodeLocals
-                    if (locals != null && locals.HasLocal(varName) && context.LocalVarDefinesUsed.Peek().Add(varName)) {
+                    if (Destination.Var.InstanceType == UndertaleInstruction.InstanceType.Local && context.LocalVarDefinesUsed.Peek().Add(varName)) {
                         HasVarKeyword = true;
                         context.LocalVarDefines.Add(varName);
                     }
@@ -84,7 +82,7 @@ public static partial class Decompiler
 
             string prefix = (
                 Destination.Var.InstanceType == UndertaleInstruction.InstanceType.Static ? "static " :
-                ((HasVarKeyword && !context.DecompilingStruct) ? "var " : "")
+                HasVarKeyword ? "var " : ""
             );
 
             // Check for possible ++, --, or operation equal (for single vars)

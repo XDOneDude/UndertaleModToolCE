@@ -85,6 +85,7 @@ namespace UndertaleModLib.Compiler
                 public Lexer.Token Token;
                 public string Text;
                 public UndertaleInstruction.DataType? DataType;
+                public UndertaleInstruction.InstanceType? InstanceType;
                 public List<Statement> Children;
                 public ExpressionConstant Constant;
                 private int _ID = 0;
@@ -148,6 +149,7 @@ namespace UndertaleModLib.Compiler
                     ID = s.ID;
                     WasIDSet = s.WasIDSet;
                     DataType = s.DataType;
+                    InstanceType = s.InstanceType;
                     Children = new List<Statement>(s.Children);
                     if (s.Constant != null)
                         Constant = new ExpressionConstant(s.Constant);
@@ -163,6 +165,7 @@ namespace UndertaleModLib.Compiler
                     ID = s.ID;
                     WasIDSet = s.WasIDSet;
                     DataType = s.DataType;
+                    InstanceType = s.InstanceType;
                     Children = new List<Statement>(s.Children);
                     if (s.Constant != null)
                         Constant = new ExpressionConstant(s.Constant);
@@ -1098,6 +1101,7 @@ namespace UndertaleModLib.Compiler
                         ReportCodeError(string.Format("Variable name {0} cannot be used; a resource already has the name.", var.Text), var.Token, false);
 
                     Statement variable = new Statement(var) { Kind = Statement.StatementKind.ExprSingleVariable };
+                    variable.InstanceType = UndertaleInstruction.InstanceType.Local;
                     result.Children.Add(variable);
                     context.LocalVars[var.Text] = var.Text;
 
@@ -1109,6 +1113,7 @@ namespace UndertaleModLib.Compiler
 
                         Statement left = new Statement(var) { Kind = Statement.StatementKind.ExprSingleVariable };
                         left.ID = var.ID;
+                        left.InstanceType = UndertaleInstruction.InstanceType.Local;
 
                         a.Children.Add(left);
                         a.Children.Add(new Statement(TokenKind.Assign, a.Token));
