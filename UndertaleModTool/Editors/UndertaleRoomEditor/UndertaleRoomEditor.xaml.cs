@@ -2295,19 +2295,9 @@ namespace UndertaleModTool
         {
             if (ObjectEditor.Content is Layer lay)
             {
-                /*
-                if (lay.LayerType != LayerType.Tiles)
-                    mainWindow.ShowError("A valid tile layer must be selected!");
-                else
-                {
-                    UndertaleTileEditor TileEditor = new UndertaleTileEditor();
-                    TileEditor.Show();
-                }
-                return;
-                */
-                
+                UndertaleTileEditor TileEditor = new UndertaleTileEditor(lay);
+                TileEditor.Show();
             }
-            MessageBox.Show("This feature is currently disabled");
             return;
         }
     }
