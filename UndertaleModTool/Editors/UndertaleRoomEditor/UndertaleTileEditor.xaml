@@ -17,7 +17,25 @@
             <Setter Property="RenderOptions.BitmapScalingMode" Value="NearestNeighbor"/>
             <Setter Property="UIElement.SnapsToDevicePixels" Value="True"/>
         </Style>
-    </Window.Resources>    
+    </Window.Resources>
+    <Window.CommandBindings>
+        <CommandBinding Command="{x:Static local:UndertaleTileEditor.MirrorCommand}" Executed="Command_Mirror" />
+        <CommandBinding Command="{x:Static local:UndertaleTileEditor.FlipCommand}" Executed="Command_Flip" />
+        <CommandBinding Command="{x:Static local:UndertaleTileEditor.RotateCommand}" Executed="Command_Rotate" />
+        <CommandBinding Command="{x:Static local:UndertaleTileEditor.RotateCWCommand}" Executed="Command_RotateCW" />
+        <CommandBinding Command="{x:Static local:UndertaleTileEditor.RotateCCWCommand}" Executed="Command_RotateCCW" />
+        <CommandBinding Command="{x:Static local:UndertaleTileEditor.ToggleGridCommand}" Executed="Command_ToggleGrid" />
+    </Window.CommandBindings>
+    <Window.InputBindings>
+        <KeyBinding Key="X" Command="{x:Static local:UndertaleTileEditor.MirrorCommand}"/>
+        <KeyBinding Key="Y" Command="{x:Static local:UndertaleTileEditor.FlipCommand}"/>
+        <KeyBinding Key="Z" Command="{x:Static local:UndertaleTileEditor.FlipCommand}"/>
+        <KeyBinding Key="W" Command="{x:Static local:UndertaleTileEditor.RotateCommand}"/>
+        <KeyBinding Key="Q" Command="{x:Static local:UndertaleTileEditor.RotateCCWCommand}"/>
+        <KeyBinding Key="R" Command="{x:Static local:UndertaleTileEditor.RotateCWCommand}"/>
+        <KeyBinding Key="G" Command="{x:Static local:UndertaleTileEditor.ToggleGridCommand}"/>
+    </Window.InputBindings>
+
     <Grid Margin="10">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -34,12 +52,34 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             
+            <Grid Grid.Row="0" Grid.Column="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <CheckBox ToolTip="Mirror (X)" Margin="3" IsChecked="{Binding BrushFlipH}"/>
+                    <TextBlock Margin="3">Mirror</TextBlock>
+                    <CheckBox ToolTip="Flip (Y)" Margin="9,3,3,3" IsChecked="{Binding BrushFlipV}"/>
+                    <TextBlock Margin="3">Flip</TextBlock>
+                    <CheckBox ToolTip="Rotate 90° (W; Q/R)" Margin="9,3,3,3" IsChecked="{Binding BrushRotate}"/>
+                    <TextBlock Margin="3">Rotate</TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <CheckBox ToolTip="Show grid (G)" Margin="9,3,3,3" IsChecked="{Binding ShowGridBool}"/>
+                    <TextBlock Margin="3">Grid</TextBlock>
+                </StackPanel>
+            </Grid>
+
             <ScrollViewer
                 Name="TilesScroll"
-                Grid.Row="0" Grid.Column="0" Margin="3,3,11,3" 
+                Grid.Row="1" Grid.Column="0" Margin="3,3,11,3" 
                 HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible"
                 PreviewMouseWheel="Scroll_MouseWheel"
                 Background="DarkGray"
@@ -60,25 +100,68 @@
                         Width="{Binding EditWidth, Mode=OneWay}"
                         Height="{Binding EditHeight, Mode=OneWay}"
                         Stretch="None"
+                        Source="{Binding TilesBitmap, Mode=OneWay}"
                     >
                         <Image.Style>
                             <Style BasedOn="{StaticResource NearestNeighbor}"/>
                         </Image.Style>
-                        <Image.Source>
-                            <MultiBinding Converter="{StaticResource CachedTileDataLoader}">
-                                <Binding Path="TilesData" Mode="OneWay"/>
-                                <Binding Path="RefreshTiles" Mode="OneWay"/>
-                            </MultiBinding>
-                        </Image.Source>
                     </local:TileLayerImage>
+                    <Rectangle
+                        Width="{Binding EditWidth, Mode=OneWay}"
+                        Height="{Binding EditHeight, Mode=OneWay}"
+                        Visibility="{Binding ShowGrid, Mode=OneWay}"
+                    >
+                        <Rectangle.Fill>
+                            <DrawingBrush
+                                TileMode="Tile" Stretch="None"
+                                Viewbox="{Binding GridRect, Mode=OneWay}"
+                                ViewboxUnits="Absolute"
+                                Viewport="{Binding GridRect, Mode=OneWay}"
+                                ViewportUnits="Absolute"
+                            >
+                                <DrawingBrush.Drawing>
+                                    <GeometryDrawing Brush="LightBlue">
+                                        <GeometryDrawing.Geometry>
+                                            <GeometryGroup>
+                                                <LineGeometry
+                                                    StartPoint="0,0"
+                                                    EndPoint="{Binding GridPoint1, Mode=OneWay}"
+                                                />
+                                                <LineGeometry
+                                                    StartPoint="0,0"
+                                                    EndPoint="{Binding GridPoint2, Mode=OneWay}"
+                                                />
+                                            </GeometryGroup>
+                                        </GeometryDrawing.Geometry>
+                                        <GeometryDrawing.Pen>
+                                            <Pen Thickness="1" Brush="Gray" />
+                                        </GeometryDrawing.Pen>
+                                    </GeometryDrawing>
+                                </DrawingBrush.Drawing>
+                            </DrawingBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
                 </Canvas>
             </ScrollViewer>
 
-            <GridSplitter Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Stretch" ShowsPreview="True" Width="3" Height="Auto"/>
+            <GridSplitter
+                Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
+                HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                ShowsPreview="True" Width="3" Height="Auto"
+            />
+
+            <Grid Grid.Row="0" Grid.Column="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="96"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Margin="3">Palette columns</TextBlock>
+                <local:TextBoxDark Grid.Column="1" Margin="3" Text="{Binding PaletteColumns}"/>
+            </Grid>
 
             <ScrollViewer
                 Name="PaletteScroll"
-                Grid.Row="0" Grid.Column="2" Margin="11,3,3,3" 
+                Grid.Row="1" Grid.Column="2" Margin="11,3,3,3" 
                 HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible"
                 PreviewMouseWheel="Scroll_MouseWheel"
                 Background="DarkGray"
@@ -91,7 +174,11 @@
                     MouseLeave="Tiles_MouseLeave"
                 >
                     <Canvas.Background>
-                        <DrawingBrush Stretch="None" TileMode="Tile" Viewport="0,0,20,20" ViewportUnits="Absolute">
+                        <DrawingBrush
+                            Stretch="Fill" TileMode="Tile"
+                            Viewbox="0,0,20,20" ViewboxUnits="Absolute"
+                            Viewport="{Binding GridRect, Mode=OneWay}" ViewportUnits="Absolute"
+                        >
                             <DrawingBrush.Drawing>
                                 <DrawingGroup>
                                     <GeometryDrawing Geometry="M0,0 L20,0 20,20, 0,20Z" Brush="White"/>
@@ -113,9 +200,22 @@
                         <Image.Source>
                             <MultiBinding Converter="{StaticResource CachedTileDataLoader}">
                                 <Binding Path="PaletteTilesData" Mode="OneWay"/>
+                                <Binding Path="PaletteColumns" Mode="OneWay"/>
                             </MultiBinding>
                         </Image.Source>
                     </local:TileLayerImage>
+                    <Rectangle
+                        x:Name="PaletteCursor"
+                        Canvas.Left="{Binding PaletteCursorX, Mode=OneWay}"
+                        Canvas.Top="{Binding PaletteCursorY, Mode=OneWay}"
+                        Width="{Binding PaletteTilesData.Background.GMS2TileWidth, Mode=OneWay}"
+                        Height="{Binding PaletteTilesData.Background.GMS2TileHeight, Mode=OneWay}"
+                        Stroke="#FFB23131" Panel.ZIndex="50" StrokeThickness="2" SnapsToDevicePixels="True"
+                    >
+                        <Rectangle.Fill>
+                            <SolidColorBrush Color="Red" Opacity=".1"/>
+                        </Rectangle.Fill>
+                    </Rectangle>
                 </Canvas>
             </ScrollViewer>
         </Grid>
@@ -129,8 +229,20 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <local:ButtonDark Grid.Row="1" Grid.Column="1" Margin="3,3" Padding="5,3" VerticalAlignment="Center" Content="Cancel" Click="CancelButton_Click"></local:ButtonDark>
-            <local:ButtonDark Grid.Row="1" Grid.Column="2" Margin="3,3" Padding="5,3" VerticalAlignment="Center" Content="Apply" Click="ApplyButton_Click"></local:ButtonDark>
+            <TextBlock
+                Grid.Column="0" Margin="3" VerticalAlignment="Center"
+                Text="{Binding StatusText, Mode=OneWay}"
+            ></TextBlock>
+            <local:ButtonDark
+                x:Name="CancelButton"
+                Grid.Column="1" Margin="3,3" Padding="5,3"
+                VerticalAlignment="Center" Content="Cancel" Click="CancelButton_Click"
+            ></local:ButtonDark>
+            <local:ButtonDark
+                x:Name="ApplyButton"
+                Grid.Column="2" Margin="3,3" Padding="5,3"
+                VerticalAlignment="Center" Content="Apply" Click="ApplyButton_Click"
+            ></local:ButtonDark>
         </Grid>
         
     </Grid>

@@ -121,6 +121,11 @@ public class UndertaleBackground : UndertaleNamedResource, IDisposable
     /// </summary>
     public List<TileID> GMS2TileIds { get; set; } = new List<TileID>();
 
+    /// <summary>
+    /// Used in the tile editor only, not serialized.
+    /// </summary>
+    public uint PaletteColumns { get; set; } = 0;
+
     /// <inheritdoc />
     public void Serialize(UndertaleWriter writer)
     {
@@ -164,6 +169,7 @@ public class UndertaleBackground : UndertaleNamedResource, IDisposable
             GMS2OutputBorderX = reader.ReadUInt32();
             GMS2OutputBorderY = reader.ReadUInt32();
             GMS2TileColumns = reader.ReadUInt32();
+            PaletteColumns = GMS2TileColumns;
             GMS2ItemsPerTileCount = reader.ReadUInt32();
             GMS2TileCount = reader.ReadUInt32();
             GMS2UnknownAlwaysZero = reader.ReadUInt32();
