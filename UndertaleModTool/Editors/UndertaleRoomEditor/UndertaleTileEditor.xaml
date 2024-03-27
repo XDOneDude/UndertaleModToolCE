@@ -1,5 +1,6 @@
 ﻿<Window x:Class="UndertaleModTool.UndertaleTileEditor"
-        IsVisibleChanged="Window_IsVisibleChanged" Closing="Window_Closing" MouseLeave="Window_MouseLeave"
+        IsVisibleChanged="Window_IsVisibleChanged" Closing="Window_Closing" Closed="Window_Closed"
+        MouseLeave="Window_MouseLeave"
         MouseUp="Tiles_MouseUp" MouseMove="Tiles_MouseMove"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -21,7 +22,6 @@
     <Window.CommandBindings>
         <CommandBinding Command="{x:Static local:UndertaleTileEditor.MirrorCommand}" Executed="Command_Mirror" />
         <CommandBinding Command="{x:Static local:UndertaleTileEditor.FlipCommand}" Executed="Command_Flip" />
-        <CommandBinding Command="{x:Static local:UndertaleTileEditor.RotateCommand}" Executed="Command_Rotate" />
         <CommandBinding Command="{x:Static local:UndertaleTileEditor.RotateCWCommand}" Executed="Command_RotateCW" />
         <CommandBinding Command="{x:Static local:UndertaleTileEditor.RotateCCWCommand}" Executed="Command_RotateCCW" />
         <CommandBinding Command="{x:Static local:UndertaleTileEditor.ToggleGridCommand}" Executed="Command_ToggleGrid" />
@@ -30,7 +30,6 @@
         <KeyBinding Key="X" Command="{x:Static local:UndertaleTileEditor.MirrorCommand}"/>
         <KeyBinding Key="Y" Command="{x:Static local:UndertaleTileEditor.FlipCommand}"/>
         <KeyBinding Key="Z" Command="{x:Static local:UndertaleTileEditor.FlipCommand}"/>
-        <KeyBinding Key="W" Command="{x:Static local:UndertaleTileEditor.RotateCommand}"/>
         <KeyBinding Key="Q" Command="{x:Static local:UndertaleTileEditor.RotateCCWCommand}"/>
         <KeyBinding Key="R" Command="{x:Static local:UndertaleTileEditor.RotateCWCommand}"/>
         <KeyBinding Key="G" Command="{x:Static local:UndertaleTileEditor.ToggleGridCommand}"/>
@@ -56,7 +55,7 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             
-            <Grid Grid.Row="0" Grid.Column="0">
+            <Grid Grid.Row="0" Grid.Column="0" Margin="0,0,8,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -64,15 +63,24 @@
                 </Grid.ColumnDefinitions>
                 
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <CheckBox ToolTip="Mirror (X)" Margin="3" IsChecked="{Binding BrushFlipH}"/>
-                    <TextBlock Margin="3">Mirror</TextBlock>
-                    <CheckBox ToolTip="Flip (Y)" Margin="9,3,3,3" IsChecked="{Binding BrushFlipV}"/>
-                    <TextBlock Margin="3">Flip</TextBlock>
-                    <CheckBox ToolTip="Rotate 90° (W; Q/R)" Margin="9,3,3,3" IsChecked="{Binding BrushRotate}"/>
-                    <TextBlock Margin="3">Rotate</TextBlock>
+                    <local:ButtonDark
+                        Margin="3,1" Padding="3,2" VerticalAlignment="Center"
+                        Content="Mirror" Click="Command_Mirror"
+                        ToolTip="Mirror the brush around the X axis (X)"
+                    ></local:ButtonDark>
+                    <local:ButtonDark
+                        Margin="3,1" Padding="3,2" VerticalAlignment="Center"
+                        Content="Flip" Click="Command_Flip"
+                        ToolTip="Flip the brush around the Y axis (Y)"
+                    ></local:ButtonDark>
+                    <local:ButtonDark
+                        Margin="3,1" Padding="3,2" VerticalAlignment="Center"
+                        Content="Rotate" Click="Command_RotateCW"
+                        ToolTip="Rotate the brush 90 degrees (Q/R)"
+                    ></local:ButtonDark>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <CheckBox ToolTip="Show grid (G)" Margin="9,3,3,3" IsChecked="{Binding ShowGridBool}"/>
+                    <CheckBox ToolTip="Show the tile grid (G)" Margin="9,3,3,3" IsChecked="{Binding ShowGridBool}"/>
                     <TextBlock Margin="3">Grid</TextBlock>
                 </StackPanel>
             </Grid>
@@ -101,6 +109,26 @@
                         Stretch="None"
                         Source="{Binding TilesBitmap, Mode=OneWay}"
                     >
+                        <Image.Style>
+                            <Style BasedOn="{StaticResource NearestNeighbor}"/>
+                        </Image.Style>
+                    </local:TileLayerImage>
+                    <local:TileLayerImage
+                        x:Name="BrushPreviewImage"
+                        LayerTilesData="{Binding BrushTilesData, Mode=OneWay}"
+                        Canvas.Left="{Binding BrushPreviewX, Mode=OneWay}"
+                        Canvas.Top="{Binding BrushPreviewY, Mode=OneWay}"
+                        Width="{Binding BrushWidth, Mode=OneWay}"
+                        Height="{Binding BrushHeight, Mode=OneWay}"
+                        Stretch="None" Opacity="0.5"
+                        Visibility="{Binding BrushPreviewVisibility, Mode=OneWay}"
+                    >
+                        <Image.Source>
+                            <MultiBinding Converter="{StaticResource CachedTileDataLoader}">
+                                <Binding Path="BrushTilesData" Mode="OneWay"/>
+                                <Binding Path="RefreshBrush" Mode="OneWay"/>
+                            </MultiBinding>
+                        </Image.Source>
                         <Image.Style>
                             <Style BasedOn="{StaticResource NearestNeighbor}"/>
                         </Image.Style>
@@ -140,6 +168,28 @@
                             </DrawingBrush>
                         </Rectangle.Fill>
                     </Rectangle>
+                    <Rectangle
+                        x:Name="BrushOutline"
+                        Canvas.Left="{Binding BrushPreviewX, Mode=OneWay}"
+                        Canvas.Top="{Binding BrushPreviewY, Mode=OneWay}"
+                        Width="{Binding BrushWidth, Mode=OneWay}"
+                        Height="{Binding BrushHeight, Mode=OneWay}"
+                        Visibility="{Binding BrushOutlineVisibility, Mode=OneWay}"
+                        Stroke="DarkGray" Panel.ZIndex="50" StrokeThickness="2" SnapsToDevicePixels="True"
+                    ></Rectangle>
+                    <Rectangle
+                        x:Name="BrushPick"
+                        Canvas.Left="{Binding BrushPreviewX, Mode=OneWay}"
+                        Canvas.Top="{Binding BrushPreviewY, Mode=OneWay}"
+                        Width="{Binding BrushWidth, Mode=OneWay}"
+                        Height="{Binding BrushHeight, Mode=OneWay}"
+                        Visibility="{Binding BrushPickVisibility, Mode=OneWay}"
+                        Stroke="#FFB23131" Panel.ZIndex="50" StrokeThickness="2" SnapsToDevicePixels="True"
+                    >
+                        <Rectangle.Fill>
+                            <SolidColorBrush Color="Red" Opacity=".1"/>
+                        </Rectangle.Fill>
+                    </Rectangle>
                 </Canvas>
             </ScrollViewer>
 
@@ -149,13 +199,13 @@
                 ShowsPreview="True" Width="3" Height="Auto"
             />
 
-            <Grid Grid.Row="0" Grid.Column="2">
+            <Grid Grid.Row="0" Grid.Column="2" Margin="8,0,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="96"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Margin="3">Palette columns</TextBlock>
-                <local:TextBoxDark Grid.Column="1" Margin="3" Text="{Binding PaletteColumns}"/>
+                <local:TextBoxDark Grid.Column="1" Margin="3,1" Padding="0,2" Text="{Binding PaletteColumns}"/>
             </Grid>
 
             <ScrollViewer
@@ -241,8 +291,9 @@
                         x:Name="PaletteCursor"
                         Canvas.Left="{Binding PaletteCursorX, Mode=OneWay}"
                         Canvas.Top="{Binding PaletteCursorY, Mode=OneWay}"
-                        Width="{Binding PaletteTilesData.Background.GMS2TileWidth, Mode=OneWay}"
-                        Height="{Binding PaletteTilesData.Background.GMS2TileHeight, Mode=OneWay}"
+                        Width="{Binding PaletteCursorWidth, Mode=OneWay}"
+                        Height="{Binding PaletteCursorHeight, Mode=OneWay}"
+                        Visibility="{Binding PaletteCursorVisibility, Mode=OneWay}"
                         Stroke="#FFB23131" Panel.ZIndex="50" StrokeThickness="2" SnapsToDevicePixels="True"
                     >
                         <Rectangle.Fill>
