@@ -69,7 +69,7 @@ namespace UndertaleModTool
 
 
         public Point ScrollViewStart { get; set; }
-        public Point ScrollMouseStart { get; set; }
+        public Point DrawingStart { get; set; }
 
         private bool apply { get; set; } = false;
 
@@ -207,8 +207,7 @@ namespace UndertaleModTool
             if (tilesData == PaletteTilesData)
                 return;
             
-            int x = Convert.ToInt32(Math.Floor(pos.X / tilesData.Background.GMS2TileWidth));
-            int y = Convert.ToInt32(Math.Floor(pos.Y / tilesData.Background.GMS2TileHeight));
+            if (!PositionToTile(pos, tilesData, out int x, out int y)) return;
 
             uint _tileID = tileID;
             if (!noFlags)
@@ -218,10 +217,25 @@ namespace UndertaleModTool
                 if (BrushRotate) _tileID |= TILE_ROTATE;
             }
 
-            if (x < 0 || y < 0) return;
-            if (x >= tilesData.TilesX || y >= tilesData.TilesY) return;
-
             SetTile(x, y, tilesData, _tileID);
+        }
+        private void PaintLine(Layer.LayerTilesData tilesData, Point pos1, Point pos2, uint tileID, bool noFlags = false)
+        {
+            if (tilesData == PaletteTilesData)
+                return;
+            
+            PositionToTile(pos1, tilesData, out int x1, out int y1);
+            PositionToTile(pos2, tilesData, out int x2, out int y2);
+
+            uint _tileID = tileID;
+            if (!noFlags)
+            {
+                if (BrushFlipH) _tileID |= TILE_FLIP_H;
+                if (BrushFlipV) _tileID |= TILE_FLIP_V;
+                if (BrushRotate) _tileID |= TILE_ROTATE;
+            }
+
+            Line(tilesData, x1, y1, x2, y2, _tileID);
         }
 
         private void SetTile(int x, int y, Layer.LayerTilesData tilesData, uint tileID)
@@ -277,7 +291,7 @@ namespace UndertaleModTool
                 if (data[fy][fx] == replace)
                 {
                     SetTile(fx, fy, tilesData, replaceWith);
-                    if (fx > 0) stack.Push(new(fx - 1, y));
+                    if (fx > 0) stack.Push(new(fx - 1, fy));
                     if (fy > 0) stack.Push(new(fx, fy - 1));
                     if (fx < (tilesData.TilesX - 1)) stack.Push(new(fx + 1, fy));
                     if (fy < (tilesData.TilesY - 1)) stack.Push(new(fx, fy + 1));
@@ -285,14 +299,42 @@ namespace UndertaleModTool
             }
         }
 
+        private void Line(Layer.LayerTilesData tilesData, int x1, int y1, int x2, int y2, uint tile) {
+            int dx = Math.Abs(x2 - x1);
+            int sx = x1 < x2 ? 1 : -1;
+            int dy = -Math.Abs(y2 - y1);
+            int sy = y1 < y2 ? 1 : -1;
+            int error = dx + dy;
+            
+            while (true)
+            {
+                if (x1 >= 0 && y1 >= 0 && x1 < tilesData.TilesX && y1 < tilesData.TilesY)
+                    SetTile(x1, y1, tilesData, tile);
+                
+                if (x1 == x2 && y1 == y2)
+                    break;
+                
+                int e2 = 2 * error;
+                if (e2 >= dy)
+                {
+                    if (x1 == x2)
+                        break;
+                    error = error + dy;
+                    x1 = x1 + sx;
+                }
+                if (e2 <= dx)
+                {
+                    if (y1 == y2)
+                        break;
+                    error = error + dx;
+                    y1 = y1 + sy;
+                }
+            }
+        }
+
         private void Pick(Point pos, Layer.LayerTilesData tilesData)
         {
-            int x = Convert.ToInt32(Math.Floor(pos.X / tilesData.Background.GMS2TileWidth));
-            int y = Convert.ToInt32(Math.Floor(pos.Y / tilesData.Background.GMS2TileHeight));
-            if (x < 0 || y < 0)
-                return;
-            if (x >= tilesData.TilesX || y >= tilesData.TilesY)
-                return;
+            if (!PositionToTile(pos, tilesData, out int x, out int y)) return;
             uint tile = tilesData.TileData[y][x];
             BrushTile = tile & TILE_INDEX; // remove flags
             if (tilesData != PaletteTilesData)
@@ -332,10 +374,12 @@ namespace UndertaleModTool
                 FocusedTilesData = PaletteTilesData;
             }
 
+            DrawingStart = e.GetPosition(FocusedTilesImage);
+
             if (e.MiddleButton == MouseButtonState.Pressed)
             {
                 painting = Painting.DragPick;
-                ScrollMouseStart = e.GetPosition(this as Window);
+                DrawingStart = e.GetPosition(this as Window);
                 ScrollViewStart = new Point(FocusedTilesScroll.HorizontalOffset, FocusedTilesScroll.VerticalOffset);
             }
             else if (FocusedTilesScroll == PaletteScroll)
@@ -347,13 +391,11 @@ namespace UndertaleModTool
             {
                 if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
                 {
-                    Point mousePos = e.GetPosition(FocusedTilesImage);
-                    int x = Convert.ToInt32(Math.Floor(mousePos.X / FocusedTilesData.Background.GMS2TileWidth));
-                    int y = Convert.ToInt32(Math.Floor(mousePos.Y / FocusedTilesData.Background.GMS2TileHeight));
-                    if (x < 0 || y < 0) return;
-                    if (x >= FocusedTilesData.TilesX || y >= FocusedTilesData.TilesY) return;
-                    Fill(FocusedTilesData, x, y, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift), true);
-                    painting = Painting.None;
+                    if (PositionToTile(e.GetPosition(FocusedTilesImage), FocusedTilesData, out int x, out int y))
+                    {
+                        Fill(FocusedTilesData, x, y, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift), true);
+                        painting = Painting.None;
+                    }
                 }
                 else
                 {
@@ -370,13 +412,11 @@ namespace UndertaleModTool
                 }
                 else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
                 {
-                    Point mousePos = e.GetPosition(FocusedTilesImage);
-                    int x = Convert.ToInt32(Math.Floor(mousePos.X / FocusedTilesData.Background.GMS2TileWidth));
-                    int y = Convert.ToInt32(Math.Floor(mousePos.Y / FocusedTilesData.Background.GMS2TileHeight));
-                    if (x < 0 || y < 0) return;
-                    if (x >= FocusedTilesData.TilesX || y >= FocusedTilesData.TilesY) return;
-                    Fill(FocusedTilesData, x, y, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
-                    painting = Painting.None;
+                    if (PositionToTile(e.GetPosition(FocusedTilesImage), FocusedTilesData, out int x, out int y))
+                    {
+                        Fill(FocusedTilesData, x, y, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift), false);
+                        painting = Painting.None;
+                    }
                 }
                 else
                 {
@@ -389,16 +429,14 @@ namespace UndertaleModTool
         {
             if (painting == Painting.DragPick)
                 Pick(e.GetPosition(FocusedTilesImage), FocusedTilesData);
-            painting = 0;
+            painting = Painting.None;
             FocusedTilesScroll = null;
             FocusedTilesData = null;
             FocusedTilesImage = null;
         }
         private void Tiles_MouseMove(object sender, MouseEventArgs e)
         {
-            Point mapPos = e.GetPosition(LayerImage as TileLayerImage);
-            int mapX = Convert.ToInt32(Math.Floor(mapPos.X / TilesData.Background.GMS2TileWidth));
-            int mapY = Convert.ToInt32(Math.Floor(mapPos.Y / TilesData.Background.GMS2TileHeight));
+            PositionToTile(e.GetPosition(LayerImage as TileLayerImage), TilesData, out int mapX, out int mapY);
             StatusText = $"x: {mapX}  y: {mapY}";
 
             if (FocusedTilesScroll is null)
@@ -409,29 +447,35 @@ namespace UndertaleModTool
                 painting = Painting.Drag;
                 Point pos = e.GetPosition(this as Window);
                 FocusedTilesScroll.ScrollToHorizontalOffset(Math.Clamp(
-                    ScrollViewStart.X + -(pos.X - ScrollMouseStart.X), 0, FocusedTilesScroll.ScrollableWidth
+                    ScrollViewStart.X + -(pos.X - DrawingStart.X), 0, FocusedTilesScroll.ScrollableWidth
                 ));
                 FocusedTilesScroll.ScrollToVerticalOffset(Math.Clamp(
-                    ScrollViewStart.Y + -(pos.Y - ScrollMouseStart.Y), 0, FocusedTilesScroll.ScrollableHeight
+                    ScrollViewStart.Y + -(pos.Y - DrawingStart.Y), 0, FocusedTilesScroll.ScrollableHeight
                 ));
                 return;
             }
 
-            if (FocusedTilesScroll != PaletteScroll && painting == Painting.Pick && !Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
-                painting = Painting.Draw;
-            else if (painting == Painting.Draw && Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
-                painting = Painting.Pick;
-
-            if (painting == Painting.Erase)
-                PaintTile(FocusedTilesData, e.GetPosition(FocusedTilesImage), 0, true);
+            if (painting == Painting.Draw)
+            {
+                Point pos = e.GetPosition(FocusedTilesImage);
+                PaintLine(FocusedTilesData, DrawingStart, pos, BrushTile);
+                DrawingStart = pos;
+            }
+            else if (painting == Painting.Erase)
+            {
+                Point pos = e.GetPosition(FocusedTilesImage);
+                PaintLine(FocusedTilesData, DrawingStart, pos, 0, true);
+                DrawingStart = pos;
+            }
             else if (painting == Painting.Pick)
                 Pick(e.GetPosition(FocusedTilesImage), FocusedTilesData);
-            else if (painting == Painting.Draw)
-                PaintTile(FocusedTilesData, e.GetPosition(FocusedTilesImage), BrushTile);
         }
-        private void Tiles_MouseLeave(object sender, MouseEventArgs e)
+        private void Window_MouseLeave(object sender, MouseEventArgs e)
         {
-            
+            painting = Painting.None;
+            FocusedTilesScroll = null;
+            FocusedTilesData = null;
+            FocusedTilesImage = null;
         }
 
         private void Scroll_MouseWheel(object sender, MouseWheelEventArgs e)
@@ -625,6 +669,16 @@ namespace UndertaleModTool
         private void Command_ToggleGrid(object sender, ExecutedRoutedEventArgs e)
         {
             ShowGridBool = !ShowGridBool;
+        }
+
+        private bool PositionToTile(Point p, Layer.LayerTilesData tilesData, out int x, out int y)
+        {
+            x = Convert.ToInt32(Math.Floor(p.X / tilesData.Background.GMS2TileWidth));
+            y = Convert.ToInt32(Math.Floor(p.Y / tilesData.Background.GMS2TileHeight));
+            
+            if (x < 0 || y < 0) return false;
+            if (x >= tilesData.TilesX || y >= tilesData.TilesY) return false;
+            return true;
         }
     }
 }

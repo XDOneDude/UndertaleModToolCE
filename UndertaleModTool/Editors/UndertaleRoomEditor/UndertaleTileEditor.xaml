@@ -1,5 +1,5 @@
 ﻿<Window x:Class="UndertaleModTool.UndertaleTileEditor"
-        IsVisibleChanged="Window_IsVisibleChanged" Closing="Window_Closing"
+        IsVisibleChanged="Window_IsVisibleChanged" Closing="Window_Closing" MouseLeave="Window_MouseLeave"
         MouseUp="Tiles_MouseUp" MouseMove="Tiles_MouseMove"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -89,7 +89,6 @@
                     Width="{Binding EditWidth, Mode=OneWay}"
                     Height="{Binding EditHeight, Mode=OneWay}"
                     MouseDown="Tiles_MouseDown"
-                    MouseLeave="Tiles_MouseLeave"
                 >
                     <Canvas.Background>
                         <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#FFFFFFFF"/>
@@ -171,7 +170,6 @@
                     Width="{Binding PaletteWidth, Mode=OneWay}"
                     Height="{Binding PaletteHeight, Mode=OneWay}"
                     MouseDown="Tiles_MouseDown"
-                    MouseLeave="Tiles_MouseLeave"
                 >
                     <Canvas.Background>
                         <DrawingBrush
@@ -204,6 +202,41 @@
                             </MultiBinding>
                         </Image.Source>
                     </local:TileLayerImage>
+                    <Rectangle
+                        Width="{Binding PaletteWidth, Mode=OneWay}"
+                        Height="{Binding PaletteHeight, Mode=OneWay}"
+                        Visibility="{Binding ShowGrid, Mode=OneWay}"
+                    >
+                        <Rectangle.Fill>
+                            <DrawingBrush
+                                TileMode="Tile" Stretch="None"
+                                Viewbox="{Binding GridRect, Mode=OneWay}"
+                                ViewboxUnits="Absolute"
+                                Viewport="{Binding GridRect, Mode=OneWay}"
+                                ViewportUnits="Absolute"
+                            >
+                                <DrawingBrush.Drawing>
+                                    <GeometryDrawing Brush="LightBlue">
+                                        <GeometryDrawing.Geometry>
+                                            <GeometryGroup>
+                                                <LineGeometry
+                                                    StartPoint="0,0"
+                                                    EndPoint="{Binding GridPoint1, Mode=OneWay}"
+                                                />
+                                                <LineGeometry
+                                                    StartPoint="0,0"
+                                                    EndPoint="{Binding GridPoint2, Mode=OneWay}"
+                                                />
+                                            </GeometryGroup>
+                                        </GeometryDrawing.Geometry>
+                                        <GeometryDrawing.Pen>
+                                            <Pen Thickness="1" Brush="Gray" />
+                                        </GeometryDrawing.Pen>
+                                    </GeometryDrawing>
+                                </DrawingBrush.Drawing>
+                            </DrawingBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
                     <Rectangle
                         x:Name="PaletteCursor"
                         Canvas.Left="{Binding PaletteCursorX, Mode=OneWay}"

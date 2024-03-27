@@ -393,7 +393,7 @@ namespace UndertaleModTool
                 return;
 
 
-            if (selectedObject == clickedObj && selectedObject is not null)
+            if (selectedObject == clickedObj && selectedObject is not null && sender is Rectangle)
             {
                 var objElement = sender as Rectangle;
                 var relativemousePos = e.GetPosition(objElement);
