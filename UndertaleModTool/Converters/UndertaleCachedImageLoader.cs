@@ -455,7 +455,7 @@ namespace UndertaleModTool
             }
             catch (Exception ex)
             {
-                mainWindow.ShowError($"An error occured while rendering tile layer \"{tilesData.ParentLayer.LayerName.Content}\".\n\n{ex}");
+                mainWindow.ShowError($"An error occured while rendering tile layer \"{tilesData?.ParentLayer?.LayerName?.Content}\".\n\n{ex}");
                 return "Error";
             }
         }

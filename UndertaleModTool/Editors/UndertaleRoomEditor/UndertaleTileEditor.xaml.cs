@@ -184,7 +184,10 @@ namespace UndertaleModTool
             PaletteTilesData = new Layer.LayerTilesData();
             PaletteTilesData.TileData = new uint[][] { new uint[] { 0 } };
             PaletteTilesData.Background = TilesData.Background;
-            PaletteColumns = PaletteTilesData.Background.PaletteColumns;
+            if (PaletteTilesData.Background.PaletteColumns == 0)
+                PaletteColumns = PaletteTilesData.Background.GMS2TileColumns;
+            else
+                PaletteColumns = PaletteTilesData.Background.PaletteColumns;
 
             EditWidth = Convert.ToDouble((long)TilesData.TilesX * (long)TilesData.Background.GMS2TileWidth);
             EditHeight = Convert.ToDouble((long)TilesData.TilesY * (long)TilesData.Background.GMS2TileHeight);
