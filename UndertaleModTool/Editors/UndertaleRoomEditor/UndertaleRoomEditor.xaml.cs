@@ -2295,8 +2295,46 @@ namespace UndertaleModTool
         {
             if (ObjectEditor.Content is Layer lay)
             {
+                Layer.LayerTilesData data = lay.TilesData;
+
+                if (data.Background is null)
+                {
+                    mainWindow.ShowMessage("The layer must have a tileset set!");
+                    return;
+                }
+                if (data.TilesX <= 0)
+                {
+                    mainWindow.ShowMessage("The layer's horizontal size must be larger than 0 tiles!");
+                    return;
+                }
+                if (data.TilesY <= 0)
+                {
+                    mainWindow.ShowMessage("The layer's horizontal size must be larger than 0 tiles!");
+                    return;
+                }
+
                 UndertaleTileEditor TileEditor = new UndertaleTileEditor(lay);
                 TileEditor.Show();
+            }
+            return;
+        }
+        private void AutoSizeTile_Click(object sender, RoutedEventArgs e)
+        {
+            if (ObjectEditor.Content is Layer lay && this.DataContext is UndertaleRoom room)
+            {
+                Layer.LayerTilesData data = lay.TilesData;
+
+                if (data.Background is null)
+                {
+                    mainWindow.ShowMessage("The layer must have a tileset set!");
+                    return;
+                }
+                data.TilesX = (uint)Math.Ceiling(
+                    Convert.ToDouble(room.Width) / Convert.ToDouble(data.Background.GMS2TileWidth)
+                );
+                data.TilesY = (uint)Math.Ceiling(
+                    Convert.ToDouble(room.Height) / Convert.ToDouble(data.Background.GMS2TileHeight)
+                );
             }
             return;
         }
