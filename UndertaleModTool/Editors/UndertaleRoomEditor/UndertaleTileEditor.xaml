@@ -9,7 +9,7 @@
         xmlns:local="clr-namespace:UndertaleModTool"
         mc:Ignorable="d"
         Title="Edit Tile Data"
-        Height="400" Width="800" MinHeight="100" MinWidth="100"
+        Height="400" Width="800" MinHeight="300" MinWidth="300"
         WindowStartupLocation="CenterOwner"
 >
     <Window.Resources>
@@ -343,10 +343,20 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <TextBlock
-                Grid.Column="0" Margin="3" VerticalAlignment="Center"
-                Text="{Binding StatusText, Mode=OneWay}"
-            ></TextBlock>
+            <Grid Grid.Column="0" Margin="3,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock
+                    Grid.Row="0" VerticalAlignment="Center"
+                    Text="{Binding StatusText, Mode=OneWay}"
+                ></TextBlock>
+                <TextBlock
+                    Grid.Row="1" VerticalAlignment="Center"
+                    Text="Ctrl+LMB: Fill (+Shift: Global)    Alt+LMB: Pick    MMB: Scroll/Pick"
+                ></TextBlock>
+            </Grid>
             <local:ButtonDark
                 x:Name="CancelButton"
                 Grid.Column="1" Margin="3,3" Padding="5,3"
