@@ -2251,28 +2251,36 @@ namespace UndertaleModTool
                 var currentPosition = e.GetPosition(sv);
                 var offset = roomcanvas.startPosition.Value - currentPosition;
 
+                var transform = RoomGraphics.LayoutTransform as MatrixTransform;
+
+                var scrollX = sv.HorizontalOffset + offset.X;
+                var scrollY = sv.VerticalOffset + offset.Y;
+
+                var multX = sv.ScrollableWidth == 0 ? 2.0 : 1.0;
+                var multY = sv.ScrollableHeight == 0 ? 2.0 : 1.0;
+
                 roomcanvas.startPosition = currentPosition;
                 //change margins if outside view
-                if (offset.X < 0 && sv.HorizontalOffset == 0)
+                if (offset.X < 0 && scrollX <= 0)
                 {
-                    canvasOffset.Left -= offset.X;
+                    canvasOffset.Left -= offset.X * multX / transform.Matrix.M11;
                 }
-                else if (offset.X > 0 && sv.HorizontalOffset == sv.ScrollableWidth)
+                else if (offset.X > 0 && scrollX >= sv.ScrollableWidth)
                 {
-                    canvasOffset.Right += offset.X;
+                    canvasOffset.Right += offset.X * multX / transform.Matrix.M11;
                 }
-                if (offset.Y < 0 && sv.VerticalOffset == 0)
+                if (offset.Y < 0 && scrollY <= 0)
                 {
-                    canvasOffset.Top -= offset.Y;
+                    canvasOffset.Top -= offset.Y * multY / transform.Matrix.M22;
                 }
-                else if (offset.Y > 0 && sv.VerticalOffset == sv.ScrollableHeight)
+                else if (offset.Y > 0 && scrollY >= sv.ScrollableHeight)
                 {
-                    canvasOffset.Bottom += offset.Y;
+                    canvasOffset.Bottom += offset.Y * multY / transform.Matrix.M22;
                 }
                 roomcanvas.Margin = canvasOffset;
 
-                sv.ScrollToVerticalOffset(sv.VerticalOffset + offset.Y);
-                sv.ScrollToHorizontalOffset(sv.HorizontalOffset + offset.X);
+                sv.ScrollToVerticalOffset(scrollY);
+                sv.ScrollToHorizontalOffset(scrollX);
 
             }
         }
