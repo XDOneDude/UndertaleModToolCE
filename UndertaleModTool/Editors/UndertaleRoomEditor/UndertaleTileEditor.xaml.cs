@@ -264,15 +264,17 @@ namespace UndertaleModTool
             PaletteHeight = Convert.ToDouble((long)PaletteTilesData.TilesY * (long)PaletteTilesData.Background.GMS2TileHeight);
 
             int i = 0;
+            int itemsPerTile = (int)PaletteTilesData.Background.GMS2ItemsPerTileCount;
+            int count = (int)PaletteTilesData.Background.GMS2TileCount * itemsPerTile;
             for (int y = 0; y < PaletteTilesData.TilesY; y++)
             {
                 for (int x = 0; x < PaletteTilesData.TilesX; x++)
                 {
-                    if (i >= PaletteTilesData.Background.GMS2TileCount)
+                    if (i >= count)
                         PaletteTilesData.TileData[y][x] = 0;
                     else
                         PaletteTilesData.TileData[y][x] = PaletteTilesData.Background.GMS2TileIds[i].ID;
-                    i++;
+                    i += itemsPerTile;
                 }
             }
 
@@ -510,7 +512,7 @@ namespace UndertaleModTool
             );
             if (index == -1)
                 index = 0;
-            MovePaletteCursor(index);
+            MovePaletteCursor((int)(index / PaletteTilesData.Background.GMS2ItemsPerTileCount));
             ResizePaletteCursor();
             if (PaletteCursor is not null)
                 PaletteCursor.BringIntoView();
