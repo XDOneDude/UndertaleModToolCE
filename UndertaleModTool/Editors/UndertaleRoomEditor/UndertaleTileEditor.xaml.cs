@@ -24,6 +24,26 @@ using static UndertaleModLib.Models.UndertaleRoom;
 namespace UndertaleModTool
 {
     /// <summary>
+    /// Global settings used by the tile editor
+    /// </summary>
+    [PropertyChanged.AddINotifyPropertyChangedInterface]
+    public class TileEditorSettings
+    {
+        public static TileEditorSettings instance { get; set; } = new();
+        public bool BrushTiling { get; set; } = true;
+
+        public bool RoomPreviewBool { get { return RoomPreviewVisibility == Visibility.Visible; } set {
+            RoomPreviewVisibility = value ? Visibility.Visible : Visibility.Hidden;
+        } }
+        public Visibility RoomPreviewVisibility { get; set; } = Visibility.Visible;
+
+        public bool ShowGridBool { get { return ShowGrid == Visibility.Visible; } set {
+            ShowGrid = value ? Visibility.Visible : Visibility.Hidden;
+        } }
+        public Visibility ShowGrid { get; set; } = Visibility.Visible;
+    }
+
+    /// <summary>
     /// Interaction logic for UndertaleTileEditor.xaml
     /// </summary>
     [PropertyChanged.AddINotifyPropertyChangedInterface]
@@ -34,6 +54,10 @@ namespace UndertaleModTool
         public static RoutedUICommand RotateCWCommand = new("Rotate the brush 90 degrees clockwise", "RotateCW", typeof(UndertaleTileEditor));
         public static RoutedUICommand RotateCCWCommand = new("Rotate the brush 90 degrees counterclockwise", "RotateCCW", typeof(UndertaleTileEditor));
         public static RoutedUICommand ToggleGridCommand = new("Toggle the tile grid", "ToggleGrid", typeof(UndertaleTileEditor));
+        public static RoutedUICommand ToggleBrushTilingCommand = new("Toggle the \"tiling\" behavior on multi-tile brushes", "ToggleBrushTiling", typeof(UndertaleTileEditor));
+        public static RoutedUICommand TogglePreviewCommand = new("Toggle the room preview", "TogglePreview", typeof(UndertaleTileEditor));
+
+        public TileEditorSettings settings { get; set; } = TileEditorSettings.instance;
 
         public bool Modified { get; set; } = false;
 
@@ -51,6 +75,7 @@ namespace UndertaleModTool
         private const uint TILE_ROTATE = 0b01000000000000000000000000000000;
         private const uint TILE_INDEX = 0x7ffff;
         private const uint TILE_FLAGS = ~TILE_INDEX;
+        // flags shifted 28 bits to the right
         private static Dictionary<uint, uint> ROTATION_CW = new Dictionary<uint, uint>{
             {0b000, 0b100},
             {0b100, 0b011},
@@ -100,6 +125,9 @@ namespace UndertaleModTool
         public long RefreshBrush { get; set; } = 0;
 
 
+        public RenderTargetBitmap RoomPreview { get; set; }
+        public float RoomPrevOffsetX { get; set; }
+        public float RoomPrevOffsetY { get; set; }
         public Point ScrollViewStart { get; set; }
         public Point DrawingStart { get; set; }
         public Point LastMousePos { get; set; }
@@ -125,10 +153,6 @@ namespace UndertaleModTool
         private byte[] emptyTile { get; set; }
         private Dictionary<uint, byte[]> TileCache { get; set; }
 
-        public bool ShowGridBool { get { return ShowGrid == Visibility.Visible; } set {
-            ShowGrid = value ? Visibility.Visible : Visibility.Hidden;
-        } }
-        public Visibility ShowGrid { get; set; } = Visibility.Visible;
         public Rect GridRect { get; set; }
         public Point GridPoint1 { get; set; }
         public Point GridPoint2 { get; set; }
@@ -138,6 +162,9 @@ namespace UndertaleModTool
         public UndertaleTileEditor(Layer layer)
         {
             EditingLayer = layer;
+
+            RoomPrevOffsetX = -EditingLayer.XOffset;
+            RoomPrevOffsetY = -EditingLayer.YOffset;
 
             OldTileData = (uint[][])EditingLayer.TilesData.TileData.Clone();
             for (int i = 0; i < OldTileData.Length; i++)
@@ -405,7 +432,7 @@ namespace UndertaleModTool
             
             while (true)
             {
-                PaintTile(x1, y1, ox, oy, tilesData, erase);
+                PaintTile(x1, y1, settings.BrushTiling ? ox : x1, settings.BrushTiling ? oy : y1, tilesData, erase);
                 
                 if (x1 == x2 && y1 == y2)
                     break;
@@ -459,7 +486,6 @@ namespace UndertaleModTool
             }
 
             UpdateBrush();
-            RefreshBrush++;
             
             if (tilesData == PaletteTilesData)
             {
@@ -859,7 +885,15 @@ namespace UndertaleModTool
         }
         private void Command_ToggleGrid(object sender, RoutedEventArgs e)
         {
-            ShowGridBool = !ShowGridBool;
+            settings.ShowGridBool = !settings.ShowGridBool;
+        }
+        private void Command_ToggleBrushTiling(object sender, RoutedEventArgs e)
+        {
+            settings.BrushTiling = !settings.BrushTiling;
+        }
+        private void Command_TogglePreview(object sender, RoutedEventArgs e)
+        {
+            settings.RoomPreviewBool = !settings.RoomPreviewBool;
         }
 
         private bool PositionToTile(Point p, Layer.LayerTilesData tilesData, out int x, out int y)

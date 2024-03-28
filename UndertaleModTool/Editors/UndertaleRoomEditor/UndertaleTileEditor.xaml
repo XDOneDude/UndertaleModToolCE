@@ -25,6 +25,8 @@
         <CommandBinding Command="{x:Static local:UndertaleTileEditor.RotateCWCommand}" Executed="Command_RotateCW" />
         <CommandBinding Command="{x:Static local:UndertaleTileEditor.RotateCCWCommand}" Executed="Command_RotateCCW" />
         <CommandBinding Command="{x:Static local:UndertaleTileEditor.ToggleGridCommand}" Executed="Command_ToggleGrid" />
+        <CommandBinding Command="{x:Static local:UndertaleTileEditor.ToggleBrushTilingCommand}" Executed="Command_ToggleBrushTiling" />
+        <CommandBinding Command="{x:Static local:UndertaleTileEditor.TogglePreviewCommand}" Executed="Command_TogglePreview" />
     </Window.CommandBindings>
     <Window.InputBindings>
         <KeyBinding Key="X" Command="{x:Static local:UndertaleTileEditor.MirrorCommand}"/>
@@ -33,6 +35,8 @@
         <KeyBinding Key="Q" Command="{x:Static local:UndertaleTileEditor.RotateCCWCommand}"/>
         <KeyBinding Key="R" Command="{x:Static local:UndertaleTileEditor.RotateCWCommand}"/>
         <KeyBinding Key="G" Command="{x:Static local:UndertaleTileEditor.ToggleGridCommand}"/>
+        <KeyBinding Key="B" Command="{x:Static local:UndertaleTileEditor.ToggleBrushTilingCommand}"/>
+        <KeyBinding Key="P" Command="{x:Static local:UndertaleTileEditor.TogglePreviewCommand}"/>
     </Window.InputBindings>
 
     <Grid Margin="10">
@@ -71,16 +75,26 @@
                     <local:ButtonDark
                         Margin="3,1" Padding="3,2" VerticalAlignment="Center"
                         Content="Flip" Click="Command_Flip"
-                        ToolTip="Flip the brush around the Y axis (Y)"
+                        ToolTip="Flip the brush around the Y axis (Y/Z)"
                     ></local:ButtonDark>
                     <local:ButtonDark
                         Margin="3,1" Padding="3,2" VerticalAlignment="Center"
                         Content="Rotate" Click="Command_RotateCW"
-                        ToolTip="Rotate the brush 90 degrees (Q/R)"
+                        ToolTip="Rotate the brush 90 degrees (Q, R)"
                     ></local:ButtonDark>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <CheckBox ToolTip="Show the tile grid (G)" Margin="9,3,3,3" IsChecked="{Binding ShowGridBool}"/>
+                    <CheckBox 
+                        ToolTip="Show the rest of the room behind the tilemap (P)"
+                        Margin="9,3,3,3" IsChecked="{Binding settings.RoomPreviewBool}"
+                    />
+                    <TextBlock Margin="3">Preview</TextBlock>
+                    <CheckBox 
+                        ToolTip="Enable the &quot;tiling&quot; behavior when using multi-tile brushes (B)"
+                        Margin="9,3,3,3" IsChecked="{Binding settings.BrushTiling}"
+                    />
+                    <TextBlock Margin="3">Brush Tiling</TextBlock>
+                    <CheckBox ToolTip="Show the tile grid (G)" Margin="9,3,3,3" IsChecked="{Binding settings.ShowGridBool}"/>
                     <TextBlock Margin="3">Grid</TextBlock>
                 </StackPanel>
             </Grid>
@@ -101,6 +115,19 @@
                     <Canvas.Background>
                         <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#FFFFFFFF"/>
                     </Canvas.Background>
+
+                    <Image
+                        Visibility="{Binding settings.RoomPreviewVisibility, Mode=OneWay}"
+                        Canvas.Left="{Binding RoomPrevOffsetX, Mode=OneWay}"
+                        Canvas.Top="{Binding RoomPrevOffsetY, Mode=OneWay}"
+                        Source="{Binding RoomPreview, Mode=OneWay}"
+                        Opacity="0.5"
+                    >
+                        <Image.Style>
+                            <Style BasedOn="{StaticResource NearestNeighbor}"/>
+                        </Image.Style>
+                    </Image>
+
                     <local:TileLayerImage
                         x:Name="LayerImage"
                         LayerTilesData="{Binding TilesData, Mode=OneWay}"
@@ -108,6 +135,7 @@
                         Height="{Binding EditHeight, Mode=OneWay}"
                         Stretch="None"
                         Source="{Binding TilesBitmap, Mode=OneWay}"
+                        CheckTransparency="False"
                     >
                         <Image.Style>
                             <Style BasedOn="{StaticResource NearestNeighbor}"/>
@@ -122,6 +150,7 @@
                         Height="{Binding BrushHeight, Mode=OneWay}"
                         Stretch="None" Opacity="0.5"
                         Visibility="{Binding BrushPreviewVisibility, Mode=OneWay}"
+                        CheckTransparency="False"
                     >
                         <Image.Source>
                             <MultiBinding Converter="{StaticResource CachedTileDataLoader}">
@@ -136,7 +165,7 @@
                     <Rectangle
                         Width="{Binding EditWidth, Mode=OneWay}"
                         Height="{Binding EditHeight, Mode=OneWay}"
-                        Visibility="{Binding ShowGrid, Mode=OneWay}"
+                        Visibility="{Binding settings.ShowGrid, Mode=OneWay}"
                     >
                         <Rectangle.Fill>
                             <DrawingBrush
@@ -241,6 +270,7 @@
                         Width="{Binding PaletteWidth, Mode=OneWay}"
                         Height="{Binding PaletteHeight, Mode=OneWay}"
                         Stretch="None"
+                        CheckTransparency="False"
                     >
                         <Image.Style>
                             <Style BasedOn="{StaticResource NearestNeighbor}"/>
@@ -255,7 +285,7 @@
                     <Rectangle
                         Width="{Binding PaletteWidth, Mode=OneWay}"
                         Height="{Binding PaletteHeight, Mode=OneWay}"
-                        Visibility="{Binding ShowGrid, Mode=OneWay}"
+                        Visibility="{Binding settings.ShowGrid, Mode=OneWay}"
                     >
                         <Rectangle.Fill>
                             <DrawingBrush

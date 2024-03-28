@@ -107,6 +107,34 @@ namespace UndertaleModTool
             visualOffProp.SetValue(roomCanvas, prevOffset);
         }
 
+
+        public RenderTargetBitmap GetTileEditorPreview(Layer tilemap)
+        {
+            if (roomCanvas is null)
+            {
+                if (MainWindow.FindVisualChild<Canvas>(RoomGraphics) is Canvas canv && canv.Name == "RoomCanvas")
+                    roomCanvas = canv;
+                else
+                    throw new Exception("\"RoomCanvas\" not found.");
+            }
+
+            bool prevVisible = tilemap.IsVisible;
+            tilemap.IsVisible = false;
+            object prevOffset = visualOffProp.GetValue(roomCanvas);
+            visualOffProp.SetValue(roomCanvas, new Vector(0, 0));
+            Brush gridOpacMask = roomCanvas.OpacityMask;
+            roomCanvas.OpacityMask = null;
+            
+            RenderTargetBitmap target = new((int)roomCanvas.RenderSize.Width, (int)roomCanvas.RenderSize.Height, 96, 96, PixelFormats.Pbgra32);
+
+            target.Render(roomCanvas);
+
+            tilemap.IsVisible = prevVisible;
+            visualOffProp.SetValue(roomCanvas, prevOffset);
+            roomCanvas.OpacityMask = gridOpacMask;
+            return target;
+        }
+
         private void ExportAsPNG_Click(object sender, RoutedEventArgs e)
         {
             SaveFileDialog dlg = new();
@@ -2315,8 +2343,8 @@ namespace UndertaleModTool
 
                 UndertaleTileEditor TileEditor = new UndertaleTileEditor(lay);
                 TileEditor.Show();
+                TileEditor.RoomPreview = GetTileEditorPreview(lay);
             }
-            return;
         }
         private void AutoSizeTile_Click(object sender, RoutedEventArgs e)
         {
