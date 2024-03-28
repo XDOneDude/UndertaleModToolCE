@@ -204,7 +204,8 @@
                         Width="{Binding BrushWidth, Mode=OneWay}"
                         Height="{Binding BrushHeight, Mode=OneWay}"
                         Visibility="{Binding BrushOutlineVisibility, Mode=OneWay}"
-                        Stroke="DarkGray" Panel.ZIndex="50" StrokeThickness="2" SnapsToDevicePixels="True"
+                        Stroke="DarkGray" Fill="Transparent"
+                        Panel.ZIndex="50" StrokeThickness="2" SnapsToDevicePixels="True"
                     ></Rectangle>
                     <Rectangle
                         x:Name="BrushPick"

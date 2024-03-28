@@ -323,8 +323,9 @@ namespace UndertaleModTool
                 ((BrushEmpty && (painting == Painting.None || painting == Painting.Draw)) ||
                 painting == Painting.Erase) && over ? Visibility.Visible : Visibility.Hidden;
             BrushPickVisibility =
-                ((painting == Painting.Pick || painting == Painting.DragPick)
-                && FocusedTilesImage == LayerImage) ? Visibility.Visible : Visibility.Hidden;
+                ((painting == Painting.Pick || (painting == Painting.DragPick &&
+                    PositionToTile(LastMousePos, FocusedTilesData, out int _x, out int _y)
+                )) && FocusedTilesImage == LayerImage) ? Visibility.Visible : Visibility.Hidden;
         }
 
         // Places the current brush onto a tilemap.
@@ -462,10 +463,11 @@ namespace UndertaleModTool
 
         private void Pick(Point pos, Point drawingStart, Layer.LayerTilesData tilesData)
         {
-            PositionToTile(drawingStart, tilesData, out int x1, out int y1);
+            bool boundsA = PositionToTile(drawingStart, tilesData, out int x1, out int y1);
+            bool boundsB = PositionToTile(pos, tilesData, out int x2, out int y2);
+            if (!boundsA && !boundsB) return;
             x1 = Math.Clamp(x1, 0, (int)tilesData.TilesX - 1);
             y1 = Math.Clamp(y1, 0, (int)tilesData.TilesY - 1);
-            PositionToTile(pos, tilesData, out int x2, out int y2);
             x2 = Math.Clamp(x2, 0, (int)tilesData.TilesX - 1);
             y2 = Math.Clamp(y2, 0, (int)tilesData.TilesY - 1);
             if (x2 < x1) {
@@ -562,8 +564,11 @@ namespace UndertaleModTool
             }
             else if (FocusedTilesScroll == PaletteScroll)
             {
-                painting = Painting.Pick;
-                Pick(DrawingStart, DrawingStart, FocusedTilesData);
+                if (PositionToTile(DrawingStart, FocusedTilesData, out int _x, out int _y))
+                {
+                    painting = Painting.Pick;
+                    Pick(DrawingStart, DrawingStart, FocusedTilesData);
+                }
             }
             else if (e.RightButton == MouseButtonState.Pressed)
             {
@@ -586,8 +591,11 @@ namespace UndertaleModTool
             {
                 if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
                 {
-                    Pick(DrawingStart, DrawingStart, FocusedTilesData);
-                    painting = Painting.Pick;
+                    if (PositionToTile(DrawingStart, FocusedTilesData, out int _x, out int _y))
+                    {
+                        Pick(DrawingStart, DrawingStart, FocusedTilesData);
+                        painting = Painting.Pick;
+                    }
                 }
                 else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
                 {
@@ -613,7 +621,7 @@ namespace UndertaleModTool
                 Pick(e.GetPosition(FocusedTilesImage), e.GetPosition(FocusedTilesImage), FocusedTilesData);
                 FindPaletteCursor();
             }
-            EndDrawing();
+            EndDrawing(e);
         }
         private void Tiles_MouseMove(object sender, MouseEventArgs e)
         {
@@ -632,8 +640,8 @@ namespace UndertaleModTool
                 );
                 if (mapX < startX) startX = mapX;
                 if (mapY < startY) startY = mapY;
-                BrushPreviewX = Convert.ToDouble((long)startX * (long)TilesData.Background.GMS2TileWidth);
-                BrushPreviewY = Convert.ToDouble((long)startY * (long)TilesData.Background.GMS2TileHeight);
+                BrushPreviewX = Convert.ToDouble((long)Math.Max(startX, 0) * (long)TilesData.Background.GMS2TileWidth);
+                BrushPreviewY = Convert.ToDouble((long)Math.Max(startY, 0) * (long)TilesData.Background.GMS2TileHeight);
             }
 
             UpdateBrushVisibility();
@@ -675,12 +683,15 @@ namespace UndertaleModTool
         }
         private void Window_MouseLeave(object sender, MouseEventArgs e)
         {
-            EndDrawing();
+            EndDrawing(e);
         }
-        private void EndDrawing()
+        private void EndDrawing(MouseEventArgs e)
         {
             if (painting == Painting.Pick)
             {
+                PositionToTile(e.GetPosition(LayerImage as TileLayerImage), TilesData, out int mapX, out int mapY);
+                BrushPreviewX = Convert.ToDouble((long)mapX * (long)TilesData.Background.GMS2TileWidth);
+                BrushPreviewY = Convert.ToDouble((long)mapY * (long)TilesData.Background.GMS2TileHeight);
                 if (FocusedTilesData != PaletteTilesData)
                 {
                     FindPaletteCursor();
