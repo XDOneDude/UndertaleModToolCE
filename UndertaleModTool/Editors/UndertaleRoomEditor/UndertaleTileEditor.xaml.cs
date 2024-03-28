@@ -235,7 +235,7 @@ namespace UndertaleModTool
                 // force a redraw
                 EditingLayer.TilesData.TileData = (uint[][])TilesData.TileData.Clone();
             }
-            else
+            else if (Modified)
                 EditingLayer.TilesData.TileData = OldTileData;
         }
 
@@ -692,7 +692,31 @@ namespace UndertaleModTool
         private void Scroll_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             ScrollViewer scrollViewer = (ScrollViewer)sender;
-            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                Canvas canvas = (scrollViewer == TilesScroll ? TilesCanvas : PaletteCanvas) as Canvas;
+
+                e.Handled = true;
+                var mousePos = e.GetPosition(canvas);
+                var transform = canvas.LayoutTransform as MatrixTransform;
+                var matrix = transform.Matrix;
+                var scale = e.Delta >= 0 ? 1.1 : (1.0 / 1.1); // choose appropriate scaling factor
+
+                if ((matrix.M11 > 0.2 || (matrix.M11 <= 0.2 && scale > 1)) && (matrix.M11 < 6 || (matrix.M11 >= 6 && scale < 1)))
+                {
+                    matrix.ScaleAtPrepend(scale, scale, mousePos.X, mousePos.Y);
+                }
+
+                double offX = matrix.OffsetX;
+                double offY = matrix.OffsetY;
+                matrix.OffsetX = 0.0;
+                matrix.OffsetY = 0.0;
+                canvas.LayoutTransform = new MatrixTransform(matrix);
+                // fix scroll
+                scrollViewer.ScrollToHorizontalOffset(scrollViewer.HorizontalOffset - offX);
+                scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - offY);
+            }
+            else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
             {
                 scrollViewer.ScrollToHorizontalOffset(scrollViewer.HorizontalOffset - e.Delta);
                 e.Handled = true;
