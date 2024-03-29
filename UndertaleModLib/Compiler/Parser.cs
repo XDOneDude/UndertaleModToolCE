@@ -1492,6 +1492,8 @@ namespace UndertaleModLib.Compiler
                     // GMS2.3 @@Other@@/@@This@@ doesn't apply in simple variable gets like `other.variable`
                     if (!combine && next.Kind == Statement.StatementKind.ExprSingleVariable
                         && (left.Text == "@@Other@@" || left.Text == "@@This@@")
+                        // array get, other/this replacement are functions
+                        && (next.Children.Count == 0)
                     ) {
                         ExpressionConstant constant;
                         ResolveIdentifier(context, left.Text == "@@Other@@" ? "other" : "self", out constant);
