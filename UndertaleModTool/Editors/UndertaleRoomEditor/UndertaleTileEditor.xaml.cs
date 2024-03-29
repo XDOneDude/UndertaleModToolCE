@@ -642,6 +642,7 @@ namespace UndertaleModTool
             {
                 Pick(e.GetPosition(FocusedTilesImage), e.GetPosition(FocusedTilesImage), FocusedTilesData);
                 FindPaletteCursor();
+                RefreshBrush++;
             }
             EndDrawing(e);
         }
