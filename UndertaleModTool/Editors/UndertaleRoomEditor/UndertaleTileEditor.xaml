@@ -27,6 +27,8 @@
         <CommandBinding Command="{x:Static local:UndertaleTileEditor.ToggleGridCommand}" Executed="Command_ToggleGrid" />
         <CommandBinding Command="{x:Static local:UndertaleTileEditor.ToggleBrushTilingCommand}" Executed="Command_ToggleBrushTiling" />
         <CommandBinding Command="{x:Static local:UndertaleTileEditor.TogglePreviewCommand}" Executed="Command_TogglePreview" />
+        <CommandBinding Command="Undo" Executed="Command_Undo" />
+        <CommandBinding Command="Redo" Executed="Command_Redo" />
     </Window.CommandBindings>
     <Window.InputBindings>
         <KeyBinding Key="X" Command="{x:Static local:UndertaleTileEditor.MirrorCommand}"/>
@@ -37,6 +39,9 @@
         <KeyBinding Key="G" Command="{x:Static local:UndertaleTileEditor.ToggleGridCommand}"/>
         <KeyBinding Key="B" Command="{x:Static local:UndertaleTileEditor.ToggleBrushTilingCommand}"/>
         <KeyBinding Key="P" Command="{x:Static local:UndertaleTileEditor.TogglePreviewCommand}"/>
+        <KeyBinding Gesture="Ctrl+Z" Command="Undo"/>
+        <KeyBinding Gesture="Ctrl+Y" Command="Redo"/>
+        <KeyBinding Gesture="Ctrl+Shift+Z" Command="Redo"/>
     </Window.InputBindings>
 
     <Grid Margin="10">
@@ -69,17 +74,20 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
                     <local:ButtonDark
                         Margin="3,1" Padding="3,2" VerticalAlignment="Center"
-                        Content="Mirror" Click="Command_Mirror"
+                        Content="🡘" Click="Command_Mirror"
+                        Width="22"
                         ToolTip="Mirror the brush around the X axis (X)"
                     ></local:ButtonDark>
                     <local:ButtonDark
                         Margin="3,1" Padding="3,2" VerticalAlignment="Center"
-                        Content="Flip" Click="Command_Flip"
+                        Width="22"
+                        Content="🡙" Click="Command_Flip"
                         ToolTip="Flip the brush around the Y axis (Y/Z)"
                     ></local:ButtonDark>
                     <local:ButtonDark
                         Margin="3,1" Padding="3,2" VerticalAlignment="Center"
-                        Content="Rotate" Click="Command_RotateCW"
+                        Content="⟳" Click="Command_RotateCW"
+                        Width="22"
                         ToolTip="Rotate the brush 90 degrees (Q, R)"
                     ></local:ButtonDark>
                 </StackPanel>
@@ -96,6 +104,18 @@
                     <TextBlock Margin="3">Brush Tiling</TextBlock>
                     <CheckBox ToolTip="Show the tile grid (G)" Margin="9,3,3,3" IsChecked="{Binding settings.ShowGridBool}"/>
                     <TextBlock Margin="3">Grid</TextBlock>
+                    <local:ButtonDark
+                        Margin="3,1" Padding="3,2" VerticalAlignment="Center"
+                        Content="↩" Click="Command_Undo"
+                        Width="22"
+                        ToolTip="Undo (Ctrl+Z)" IsEnabled="{Binding UndoEnabled, Mode=OneWay}"
+                    ></local:ButtonDark>
+                    <local:ButtonDark
+                        Margin="3,1" Padding="3,2" VerticalAlignment="Center"
+                        Content="↪" Click="Command_Redo"
+                        Width="22"
+                        ToolTip="Redo (Ctrl+Y, Ctrl+Shift+Z)" IsEnabled="{Binding RedoEnabled, Mode=OneWay}"
+                    ></local:ButtonDark>
                 </StackPanel>
             </Grid>
 

@@ -56,6 +56,8 @@ namespace UndertaleModTool
         public static RoutedUICommand ToggleGridCommand = new("Toggle the tile grid", "ToggleGrid", typeof(UndertaleTileEditor));
         public static RoutedUICommand ToggleBrushTilingCommand = new("Toggle the \"tiling\" behavior on multi-tile brushes", "ToggleBrushTiling", typeof(UndertaleTileEditor));
         public static RoutedUICommand TogglePreviewCommand = new("Toggle the room preview", "TogglePreview", typeof(UndertaleTileEditor));
+        public static RoutedUICommand UndoCommand = new("Undoes actions", "Undo", typeof(UndertaleTileEditor));
+        public static RoutedUICommand RedoCommand = new("Redoes actions", "Redo", typeof(UndertaleTileEditor));
 
         public TileEditorSettings settings { get; set; } = TileEditorSettings.instance;
 
@@ -69,6 +71,11 @@ namespace UndertaleModTool
         public double EditHeight { get; set; }
         public double PaletteWidth { get; set; }
         public double PaletteHeight { get; set; }
+
+        public List<Dictionary<Tuple<int, int>, uint>> UndoStack { get; set; } = new();
+        public List<Dictionary<Tuple<int, int>, uint>> RedoStack { get; set; } = new();
+        public bool UndoEnabled { get; set; } = false;
+        public bool RedoEnabled { get; set; } = false;
 
         private const uint TILE_FLIP_H = 0b00010000000000000000000000000000;
         private const uint TILE_FLIP_V = 0b00100000000000000000000000000000;
@@ -359,9 +366,12 @@ namespace UndertaleModTool
             Modified = true;
             if (tilesData.TileData[y][x] != tileID)
             {
+                Tuple<int, int> key = new(x, y);
+                UndoStack[UndoStack.Count - 1][key] = tilesData.TileData[y][x];
+
                 tilesData.TileData[y][x] = tileID;
                 DrawTile(
-                    tilesData.Background, tilesData.TileData[y][x],
+                    tilesData.Background, tileID,
                     TilesBitmap, x, y
                 );
             }
@@ -414,12 +424,16 @@ namespace UndertaleModTool
                 Tuple<int, int> tuple = stack.Pop();
                 int fx = tuple.Item1;
                 int fy = tuple.Item2;
-                if (data[fy][fx] == replace && (!erase || data[fy][fx] != 0))
+                if (data[fy][fx] == replace)
                 {
                     if (erase)
                         SetTile(fx, fy, tilesData, 0);
                     else
                         SetBrushTile(tilesData, fx, fy, x, y);
+                    // if this fill just did nothing
+                    // (fixes infinite loops)
+                    if (data[fy][fx] == replace)
+                        continue;
                     if (fx > 0) stack.Push(new(fx - 1, fy));
                     if (fy > 0) stack.Push(new(fx, fy - 1));
                     if (fx < (tilesData.TilesX - 1)) stack.Push(new(fx + 1, fy));
@@ -576,14 +590,16 @@ namespace UndertaleModTool
                 {
                     if (PositionToTile(DrawingStart, FocusedTilesData, out int x, out int y))
                     {
+                        RecordUndo();
                         Fill(FocusedTilesData, x, y, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift), true);
                         painting = Painting.None;
                     }
                 }
                 else
                 {
-                    if (PositionToTile(DrawingStart, FocusedTilesData, out int x, out int y))
-                        PaintTile(x, y, x, y, FocusedTilesData, true);
+                    RecordUndo();
+                    PositionToTile(DrawingStart, FocusedTilesData, out int x, out int y);
+                    PaintTile(x, y, x, y, FocusedTilesData, true);
                     painting = Painting.Erase;
                 }
             }
@@ -601,14 +617,16 @@ namespace UndertaleModTool
                 {
                     if (PositionToTile(DrawingStart, FocusedTilesData, out int x, out int y))
                     {
+                        RecordUndo();
                         Fill(FocusedTilesData, x, y, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift), false);
                         painting = Painting.None;
                     }
                 }
                 else
                 {
-                    if (PositionToTile(DrawingStart, FocusedTilesData, out int x, out int y))
-                        PaintTile(x, y, x, y, FocusedTilesData, false);
+                    RecordUndo();
+                    PositionToTile(DrawingStart, FocusedTilesData, out int x, out int y);
+                    PaintTile(x, y, x, y, FocusedTilesData, false);
                     painting = Painting.Draw;
                 }
             }
@@ -685,8 +703,20 @@ namespace UndertaleModTool
         {
             EndDrawing(e);
         }
+        private void EndDrawing()
+        {
+            if (painting == Painting.None)
+                return;
+            painting = Painting.None;
+            FocusedTilesScroll = null;
+            FocusedTilesData = null;
+            FocusedTilesImage = null;
+            UpdateBrush();
+        }
         private void EndDrawing(MouseEventArgs e)
         {
+            if (painting == Painting.None)
+                return;
             if (painting == Painting.Pick)
             {
                 PositionToTile(e.GetPosition(LayerImage as TileLayerImage), TilesData, out int mapX, out int mapY);
@@ -698,11 +728,7 @@ namespace UndertaleModTool
                 }
                 RefreshBrush++;
             }
-            painting = Painting.None;
-            FocusedTilesScroll = null;
-            FocusedTilesData = null;
-            FocusedTilesImage = null;
-            UpdateBrush();
+            EndDrawing();
         }
 
         private void Scroll_MouseWheel(object sender, MouseWheelEventArgs e)
@@ -934,6 +960,60 @@ namespace UndertaleModTool
         private void Command_TogglePreview(object sender, RoutedEventArgs e)
         {
             settings.RoomPreviewBool = !settings.RoomPreviewBool;
+        }
+        private void Command_Undo(object sender, RoutedEventArgs e)
+        {
+            if (UndoStack.Count == 0)
+                return;
+            EndDrawing();
+            int index = UndoStack.Count - 1;
+            var undoData = UndoStack[index];
+            ApplyUndo(undoData);
+            UndoStack.RemoveAt(index);
+            RedoStack.Add(undoData);
+            UndoEnabled = UndoStack.Count > 0;
+            RedoEnabled = true;
+
+        }
+        private void Command_Redo(object sender, RoutedEventArgs e)
+        {
+            if (RedoStack.Count == 0)
+                return;
+            EndDrawing();
+            int index = RedoStack.Count - 1;
+            var undoData = RedoStack[index];
+            ApplyUndo(undoData);
+            RedoStack.RemoveAt(index);
+            UndoStack.Add(undoData);
+            UndoEnabled = true;
+            RedoEnabled = RedoStack.Count > 0;
+        }
+        private void RecordUndo()
+        {
+            if (UndoStack.Count >= 100)
+                UndoStack.RemoveAt(1);
+            UndoStack.Add(new());
+            RedoStack.Clear();
+            UndoEnabled = true;
+            RedoEnabled = false;
+        }
+        // Applies some undo data, and also "swaps" it
+        // to instead redo.
+        private void ApplyUndo(Dictionary<Tuple<int, int>, uint> data)
+        {
+            foreach (KeyValuePair<Tuple<int, int>, uint> kvp in data)
+            {
+                int x = kvp.Key.Item1;
+                int y = kvp.Key.Item2;
+                uint tile = kvp.Value;
+                uint oldTile = TilesData.TileData[y][x];
+                TilesData.TileData[y][x] = tile;
+                DrawTile(
+                    TilesData.Background, tile,
+                    TilesBitmap, x, y
+                );
+                data[kvp.Key] = oldTile;
+            }
         }
 
         private bool PositionToTile(Point p, Layer.LayerTilesData tilesData, out int x, out int y)
