@@ -419,9 +419,13 @@ namespace UndertaleModTool
 
             Stack<Tuple<int, int>> stack = new();
             stack.Push(new(x, y));
+            HashSet<Tuple<int, int>> handled = new();
             while (stack.Count > 0)
             {
                 Tuple<int, int> tuple = stack.Pop();
+                if (handled.Contains(tuple))
+                    continue;
+                handled.Add(tuple);
                 int fx = tuple.Item1;
                 int fy = tuple.Item2;
                 if (data[fy][fx] == replace)
