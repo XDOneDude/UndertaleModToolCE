@@ -22,8 +22,10 @@ namespace UndertaleModLib.Compiler
                 public List<UndertaleInstruction> instructions;
                 public uint offset = 0;
                 public Stack<DataType> typeStack = new Stack<DataType>();
-                public Stack<LoopContext> loopContexts = new Stack<LoopContext>();
+                public Stack<Context> loopContexts = new Stack<Context>();
                 public Stack<OtherContext> otherContexts = new Stack<OtherContext>();
+                // contains both loop and other contexts
+                public Stack<Context> contexts = new Stack<Context>();
                 public List<string> ErrorMessages = new List<string>();
                 public List<VariablePatch> varPatches = new List<VariablePatch>();
                 public List<FunctionPatch> funcPatches = new List<FunctionPatch>();
@@ -461,7 +463,33 @@ namespace UndertaleModLib.Compiler
                 }
             }
 
-            public class OtherContext
+            public class Context
+            {
+                public Patch Break;
+                public Patch Continue;
+                public bool BreakUsed = false;
+                public bool ContinueUsed = false;
+
+                public Context(Patch @break, Patch @continue)
+                {
+                    Break = @break;
+                    Continue = @continue;
+                }
+
+                public Patch UseBreak()
+                {
+                    BreakUsed = true;
+                    return Break;
+                }
+
+                public Patch UseContinue()
+                {
+                    ContinueUsed = true;
+                    return Continue;
+                }
+            }
+
+            public class OtherContext : Context
             {
                 public enum ContextKind
                 {
@@ -470,92 +498,31 @@ namespace UndertaleModLib.Compiler
                 }
 
                 public ContextKind Kind;
-                public Patch Break;
-                public Patch Continue;
                 public DataType TypeToPop; // switch statements
-                public bool BreakUsed = false;
-                public bool ContinueUsed = false;
-
-                public OtherContext(Patch @break, Patch @continue, DataType typeToPop)
+                public OtherContext(Patch @break, Patch @continue, DataType typeToPop) : base(@break, @continue)
                 {
                     Kind = ContextKind.Switch;
-                    Break = @break;
-                    Continue = @continue;
                     TypeToPop = typeToPop;
                 }
 
-                public OtherContext(Patch @break, Patch @continue)
+                public OtherContext(Patch @break, Patch @continue) : base(@break, @continue)
                 {
                     Kind = ContextKind.With;
                     Break = @break;
                     Continue = @continue;
                 }
-
-                public Patch UseBreak()
-                {
-                    BreakUsed = true;
-                    return Break;
-                }
-
-                public Patch UseContinue()
-                {
-                    ContinueUsed = true;
-                    return Continue;
-                }
             }
 
-            public struct LoopContext
+            private static Patch HelpUseBreak(ref Stack<Context> s)
             {
-                public Patch Break;
-                public Patch Continue;
-                public bool BreakUsed;
-                public bool ContinueUsed;
-
-                public LoopContext(Patch @break, Patch @continue)
-                {
-                    Break = @break;
-                    Continue = @continue;
-                    BreakUsed = false;
-                    ContinueUsed = false;
-                }
-
-                public Patch UseBreak()
-                {
-                    BreakUsed = true;
-                    return Break;
-                }
-
-                public Patch UseContinue()
-                {
-                    ContinueUsed = true;
-                    return Continue;
-                }
-            }
-
-            private static Patch HelpUseBreak(ref Stack<LoopContext> s)
-            {
-                LoopContext c = s.Pop();
+                Context c = s.Pop();
                 Patch res = c.UseBreak();
                 s.Push(c);
                 return res;
             }
-            private static Patch HelpUseContinue(ref Stack<LoopContext> s)
+            private static Patch HelpUseContinue(ref Stack<Context> s)
             {
-                LoopContext c = s.Pop();
-                Patch res = c.UseContinue();
-                s.Push(c);
-                return res;
-            }
-            private static Patch HelpUseBreak(ref Stack<OtherContext> s)
-            {
-                OtherContext c = s.Pop();
-                Patch res = c.UseBreak();
-                s.Push(c);
-                return res;
-            }
-            private static Patch HelpUseContinue(ref Stack<OtherContext> s)
-            {
-                OtherContext c = s.Pop();
+                Context c = s.Pop();
                 Patch res = c.UseContinue();
                 s.Push(c);
                 return res;
@@ -690,9 +657,11 @@ namespace UndertaleModLib.Compiler
                             endLoopPatch.Add(cw.Emit(Opcode.Bf));
 
                             var continuePatch = Patch.Start();
-                            cw.loopContexts.Push(new LoopContext(endLoopPatch, continuePatch));
+                            cw.loopContexts.Push(new Context(endLoopPatch, continuePatch));
+                            cw.contexts.Push(cw.loopContexts.Peek());
                             AssembleStatement(cw, s.Children[3]); // body
                             cw.loopContexts.Pop();
+                            cw.contexts.Pop();
                             continuePatch.Finish(cw);
                             AssembleStatement(cw, s.Children[2]); // code that runs each iteration, usually "i++" or something
                             conditionPatch.Add(cw.Emit(Opcode.B));
@@ -717,9 +686,11 @@ namespace UndertaleModLib.Compiler
                             }
                             Patch endLoopPatch = Patch.Start();
                             endLoopPatch.Add(cw.Emit(Opcode.Bf));
-                            cw.loopContexts.Push(new LoopContext(endLoopPatch, conditionPatch));
+                            cw.loopContexts.Push(new Context(endLoopPatch, conditionPatch));
+                            cw.contexts.Push(cw.loopContexts.Peek());
                             AssembleStatement(cw, s.Children[1]); // body
                             cw.loopContexts.Pop();
+                            cw.contexts.Pop();
                             conditionPatch.Add(cw.Emit(Opcode.B));
                             conditionPatch.Finish(cw);
                             endLoopPatch.Finish(cw);
@@ -751,7 +722,8 @@ namespace UndertaleModLib.Compiler
                                         .ComparisonKind = ComparisonType.LTE;
                             endPatch.Add(cw.Emit(Opcode.Bt));
 
-                            cw.loopContexts.Push(new LoopContext(endPatch, repeatPatch));
+                            cw.loopContexts.Push(new Context(endPatch, repeatPatch));
+                            cw.contexts.Push(cw.loopContexts.Peek());
 
                             Patch startPatch = Patch.StartHere(cw);
                             AssembleStatement(cw, s.Children[1]); // body
@@ -768,6 +740,7 @@ namespace UndertaleModLib.Compiler
                             cw.Emit(Opcode.Popz, DataType.Int32); // Cleans up the stack of the decrementing value, which at this point should be <= 0
 
                             cw.loopContexts.Pop();
+                            cw.contexts.Pop();
                         }
                         break;
                     case Parser.Statement.StatementKind.DoUntilLoop:
@@ -781,7 +754,8 @@ namespace UndertaleModLib.Compiler
                             Patch endPatch = Patch.Start();
                             Patch repeatPatch = Patch.Start();
 
-                            cw.loopContexts.Push(new LoopContext(endPatch, repeatPatch));
+                            cw.loopContexts.Push(new Context(endPatch, repeatPatch));
+                            cw.contexts.Push(cw.loopContexts.Peek());
 
                             Patch startPatch = Patch.StartHere(cw);
                             AssembleStatement(cw, s.Children[0]); // body
@@ -798,6 +772,7 @@ namespace UndertaleModLib.Compiler
 
                             endPatch.Finish(cw);
                             cw.loopContexts.Pop();
+                            cw.contexts.Pop();
                         }
                         break;
                     case Parser.Statement.StatementKind.Switch:
@@ -805,7 +780,7 @@ namespace UndertaleModLib.Compiler
                             Patch endPatch = Patch.Start();
                             bool isEnclosingLoop = (cw.loopContexts.Count > 0);
                             Patch continueEndPatch = null;
-                            LoopContext enclosingContext = default(LoopContext);
+                            Context enclosingContext = default(Context);
                             if (isEnclosingLoop)
                             {
                                 continueEndPatch = Patch.Start();
@@ -817,6 +792,7 @@ namespace UndertaleModLib.Compiler
                             var compareType = cw.typeStack.Pop();
 
                             cw.otherContexts.Push(new OtherContext(endPatch, continueEndPatch, compareType));
+                            cw.contexts.Push(cw.otherContexts.Peek());
 
                             List<Tuple<Parser.Statement, Patch, int /* index in s.Children */>> cases = new List<Tuple<Parser.Statement, Patch, int>>();
                             Patch defaultPatch = null;
@@ -901,6 +877,7 @@ namespace UndertaleModLib.Compiler
 
                             // Write part at end in case a continue statement is used
                             OtherContext context = cw.otherContexts.Pop();
+                            cw.contexts.Pop();
                             if (isEnclosingLoop && context.ContinueUsed)
                             {
                                 endPatch.Add(cw.Emit(Opcode.B));
@@ -945,6 +922,7 @@ namespace UndertaleModLib.Compiler
                             }
 
                             cw.otherContexts.Push(new OtherContext(endPatch, popEnvPatch));
+                            cw.contexts.Push(cw.otherContexts.Peek());
 
                             popEnvPatch.Add(cw.Emit(Opcode.PushEnv));
                             Patch startPatch = Patch.StartHere(cw);
@@ -955,6 +933,7 @@ namespace UndertaleModLib.Compiler
                             startPatch.Add(cw.Emit(Opcode.PopEnv));
                             startPatch.Finish(cw);
 
+                            cw.contexts.Pop();
                             if (cw.otherContexts.Pop().BreakUsed)
                             {
                                 Patch cleanUpEndPatch = Patch.Start();
@@ -981,10 +960,7 @@ namespace UndertaleModLib.Compiler
                         }
                         else
                         {
-                            if (cw.otherContexts.Count > 0 && cw.otherContexts.Peek().Continue != null)
-                                HelpUseContinue(ref cw.otherContexts).Add(cw.Emit(Opcode.B));
-                            else
-                                HelpUseContinue(ref cw.loopContexts).Add(cw.Emit(Opcode.B));
+                            HelpUseContinue(ref cw.contexts).Add(cw.Emit(Opcode.B));
                         }
                         break;
                     case Parser.Statement.StatementKind.Break:
@@ -993,12 +969,7 @@ namespace UndertaleModLib.Compiler
                             AssemblyWriterError(cw, "Break statement placed outside of any loops.", s.Token);
                         }
                         else
-                        {
-                            if (cw.otherContexts.Count > 0 && cw.otherContexts.Peek().Break != null)
-                                HelpUseBreak(ref cw.otherContexts).Add(cw.Emit(Opcode.B));
-                            else
-                                HelpUseBreak(ref cw.loopContexts).Add(cw.Emit(Opcode.B));
-                        }
+                            HelpUseBreak(ref cw.contexts).Add(cw.Emit(Opcode.B));
                         break;
                     case Parser.Statement.StatementKind.FunctionCall:
                         {
@@ -1463,10 +1434,12 @@ namespace UndertaleModLib.Compiler
                             }
                             
                             cw.compileContext.LocalVarsStack.Push(new HashSet<string>());
-                            cw.loopContexts.Push(new LoopContext(endPatch, startPatch));
+                            cw.loopContexts.Push(new Context(endPatch, startPatch));
+                            cw.contexts.Push(cw.loopContexts.Peek());
                             AssembleStatement(cw, e.Children[2]); // body
                             AssembleExit(cw);
                             cw.loopContexts.Pop();
+                            cw.contexts.Pop();
                             endPatch.Finish(cw);
 
                             if (childEntry is not null) {
