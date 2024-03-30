@@ -1226,7 +1226,13 @@ namespace UndertaleModLib.Compiler
                     Parser.Statement funcVar = new Parser.Statement(Parser.Statement.StatementKind.ExprSingleVariable);
                     funcVar.ID = varId;
                     funcVar.Text = fc.Text;
-                    AssembleVariablePush(cw, funcVar, false, false, false, isSelf ? InstanceType.Builtin : InstanceType.Stacktop);
+
+                    InstanceType instType = InstanceType.Stacktop;
+                    if (isSelf)
+                        instType = cw.compileContext.LocalVarsStack.Peek().Contains(funcVar.Text) ?
+                            InstanceType.Local : InstanceType.Builtin;
+
+                    AssembleVariablePush(cw, funcVar, false, false, false, instType);
 
                     cw.Emit(Opcode.CallV, DataType.Variable).Extra = argCount;
                 }
@@ -1945,7 +1951,7 @@ namespace UndertaleModLib.Compiler
                             {
                                 cw.varPatches.Add(new VariablePatch()
                                 {
-                                    Target = cw.EmitRef(Opcode.Push, DataType.Variable),
+                                    Target = cw.EmitRef(forceInstType == InstanceType.Local ? Opcode.PushLoc : Opcode.Push, DataType.Variable),
                                     Name = e.Children[0].Text,
                                     InstType = (forceInstType != InstanceType.Undefined) ? forceInstType : GetIDPrefixSpecial(e.Children[0].ID),
                                     VarType = VariableType.Array
@@ -1997,7 +2003,7 @@ namespace UndertaleModLib.Compiler
                                 {
                                     cw.varPatches.Add(new VariablePatch()
                                     {
-                                        Target = cw.EmitRef(Opcode.Push, DataType.Variable),
+                                        Target = cw.EmitRef(forceInstType == InstanceType.Local ? Opcode.PushLoc : Opcode.Push, DataType.Variable),
                                         Name = name,
                                         InstType = (forceInstType != InstanceType.Undefined) ? forceInstType : InstanceType.Self,
                                         VarType = VariableType.Normal
