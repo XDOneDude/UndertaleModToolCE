@@ -89,10 +89,10 @@ namespace UndertaleModTool
             {0b011, 0b111},
             {0b111, 0b000},
 
-            {0b001, 0b110},
-            {0b110, 0b010},
-            {0b010, 0b101},
-            {0b101, 0b001},
+            {0b110, 0b001},
+            {0b010, 0b110},
+            {0b101, 0b010},
+            {0b001, 0b101},
         };
         private static Dictionary<uint, uint> ROTATION_CCW = new Dictionary<uint, uint>{
             {0b100, 0b000},
@@ -100,10 +100,10 @@ namespace UndertaleModTool
             {0b111, 0b011},
             {0b000, 0b111},
 
-            {0b110, 0b001},
-            {0b010, 0b110},
-            {0b101, 0b010},
-            {0b001, 0b101},
+            {0b001, 0b110},
+            {0b110, 0b010},
+            {0b010, 0b101},
+            {0b101, 0b001},
         };
 
         private uint[][] OldTileData { get; set; }
@@ -838,13 +838,14 @@ namespace UndertaleModTool
                     newBMP.RotateFlip(System.Drawing.RotateFlipType.Rotate90FlipNone);
                     break;
                 case 5:
-                    newBMP.RotateFlip(System.Drawing.RotateFlipType.Rotate270FlipY);
-                    break;
-                case 6:
+                    // axes flipped since flip/mirror is done before rotation
                     newBMP.RotateFlip(System.Drawing.RotateFlipType.Rotate90FlipY);
                     break;
+                case 6:
+                    newBMP.RotateFlip(System.Drawing.RotateFlipType.Rotate90FlipX);
+                    break;
                 case 7:
-                    newBMP.RotateFlip(System.Drawing.RotateFlipType.Rotate270FlipNone);
+                    newBMP.RotateFlip(System.Drawing.RotateFlipType.Rotate90FlipXY);
                     break;
                 default:
                     throw new InvalidDataException($"{tile & TILE_FLAGS} is not a valid tile flag value.");
@@ -902,7 +903,12 @@ namespace UndertaleModTool
             {
                 Array.Reverse(BrushTilesData.TileData[y]);
                 for (int x = 0; x < BrushTilesData.TilesX; x++)
-                    BrushTilesData.TileData[y][x] ^= TILE_FLIP_H;
+                {
+                    if ((BrushTilesData.TileData[y][x] & TILE_ROTATE) != 0)
+                        BrushTilesData.TileData[y][x] ^= TILE_FLIP_V;
+                    else
+                        BrushTilesData.TileData[y][x] ^= TILE_FLIP_H;
+                }
             }
             RefreshBrush++;
         }
@@ -912,7 +918,12 @@ namespace UndertaleModTool
             for (int y = 0; y < BrushTilesData.TilesY; y++)
             {
                 for (int x = 0; x < BrushTilesData.TilesX; x++)
-                    BrushTilesData.TileData[y][x] ^= TILE_FLIP_V;
+                {
+                    if ((BrushTilesData.TileData[y][x] & TILE_ROTATE) != 0)
+                        BrushTilesData.TileData[y][x] ^= TILE_FLIP_H;
+                    else
+                        BrushTilesData.TileData[y][x] ^= TILE_FLIP_V;
+                }
             }
             RefreshBrush++;
         }
