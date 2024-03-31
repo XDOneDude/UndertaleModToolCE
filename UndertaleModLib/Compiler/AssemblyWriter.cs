@@ -65,6 +65,11 @@ namespace UndertaleModLib.Compiler
 
                 public UndertaleInstruction Emit(Opcode opcode, DataType type1, DataType type2)
                 {
+                    if (opcode == Opcode.Conv)
+                    {
+
+
+                    }
                     var res = new UndertaleInstruction()
                     {
                         Kind = opcode,
@@ -1897,6 +1902,10 @@ namespace UndertaleModLib.Compiler
                             {
                                 for (int i = 2; i < e.Children[0].Children.Count; i++)
                                 {
+                                    if (cw.typeStack.Count > 0 && cw.typeStack.Peek() != DataType.Int32)
+                                    {
+                                        cw.Emit(Opcode.Conv, cw.typeStack.Peek(), DataType.Int32);
+                                    }
                                     cw.Emit(Opcode.Break, DataType.Int16).Value = (short)-4; // pushac
                                     AssembleExpression(cw, e.Children[0].Children[i]); // this needs error handling
                                 }
@@ -1918,6 +1927,10 @@ namespace UndertaleModLib.Compiler
                             }
                             if (CompileContext.GMS2_3 && e.Children[0].Children.Count > 1)
                             {
+                                if (e.Children[0].Children.Count > 2 && cw.typeStack.Count > 0 && cw.typeStack.Peek() != DataType.Int32)
+                                {
+                                    cw.Emit(Opcode.Conv, cw.typeStack.Peek(), DataType.Int32);
+                                }
                                 cw.Emit(Opcode.Break, DataType.Int16).Value = (short)-2; // pushaf
                             }
                             else
@@ -2239,6 +2252,10 @@ namespace UndertaleModLib.Compiler
                                 {
                                     for (int i = 2; i < s.Children[0].Children.Count; i++)
                                     {
+                                        if (cw.typeStack.Count > 0 && cw.typeStack.Peek() != DataType.Int32)
+                                        {
+                                            cw.Emit(Opcode.Conv, cw.typeStack.Peek(), DataType.Int32);
+                                        }
                                         cw.Emit(Opcode.Break, DataType.Int16).Value = (short)-4; // pushac
                                         AssembleExpression(cw, s.Children[0].Children[i]); // this needs error handling
                                     }
