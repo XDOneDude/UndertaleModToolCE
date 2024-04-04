@@ -16,6 +16,7 @@ public class DecompileContext
     public static bool GMS2_3;
     public bool BooleanTypeEnabled => GlobalContext.Data.IsVersionAtLeast(2, 3, 7);
     public bool AssetResolutionEnabled => !GlobalContext.Data.IsVersionAtLeast(2023, 8);
+    public bool ObjectFunctionDefs = false;
 
     public DecompileContext(GlobalDecompileContext globalContext, UndertaleCode code, bool computeObject = true)
     {

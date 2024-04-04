@@ -586,7 +586,7 @@ namespace UndertaleModLib.Decompiler
                                         var def = new FunctionDefinition(argCodeFunc.Target, functionBody, functionBodyEntryBlock, type);
                                         stack.Push(def);
 
-                                        if (GlobalDecompileContext.ObjectFunctionDefs && (context.Object is not null) && (i + 3) < block.Instructions.Count) {
+                                        if (context.ObjectFunctionDefs && (context.Object is not null) && (i + 3) < block.Instructions.Count) {
                                             var name = argCodeFunc.Target.Name;
                                             var pushIInstr = block.Instructions[i + 2];
                                             if (
@@ -1539,6 +1539,35 @@ namespace UndertaleModLib.Decompiler
             BuildSubFunctionCache(globalContext.Data);
             if (msgDelegate is not null)
                 msgDelegate("Decompiling, please wait... This can take a while on complex scripts.");
+
+            context.ObjectFunctionDefs = GlobalDecompileContext.ObjectFunctionDefs;
+            if (!context.ObjectFunctionDefs && code?.Name?.Content is not null && code.Name.Content.StartsWith("gml_Object_"))
+            {
+                bool hasObjectFuncs = code.ChildEntries.Find((child) => {
+                    return child.Name.Content.EndsWith("_" + code.Name.Content) &&
+                        !child.Name.Content.StartsWith("gml_Script_anon_") &&
+                        !child.Name.Content.StartsWith("gml_Script____struct___");
+                }) is not null;
+                
+                if (hasObjectFuncs)
+                {
+                    context.ObjectFunctionDefs = true;
+                    globalContext.DecompilerWarnings.Add("// Note added by UTMTCE: \"GMS2.3 object function definitions\" has been automatically enabled");
+                }
+                else
+                {
+                    bool hasGlobalFuncs = code.ChildEntries.Find((child) => {
+                        return !child.Name.Content.EndsWith("_" + code.Name.Content) &&
+                            !child.Name.Content.StartsWith("gml_Script_anon_") &&
+                            !child.Name.Content.StartsWith("gml_Script____struct___");
+                    }) is not null;
+                    if (hasGlobalFuncs)
+                    {
+                        globalContext.DecompilerWarnings.Add("// Note added by UTMTCE: \"GMS2.3 object function definitions\" is enabled, but THIS MAY BREAK THE SCRIPT,");
+                        globalContext.DecompilerWarnings.Add("// as it uses \"globally defined\" functions made in vanilla UTMT/with the option disabled");
+                    }
+                }
+            }
 
             try
             {

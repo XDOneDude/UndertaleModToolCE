@@ -106,7 +106,19 @@ namespace UndertaleModLib.Compiler
             // (as they work differently between objects and scripts)
             // TODO: we shouldn't detect if the code is for an object or not from the name,
             // but there isn't really any other way to do so
-            IsObjectCode = CompileContext.ObjectFunctionDefs && OriginalCode.Name.Content.StartsWith("gml_Object_");
+            IsObjectCode = ObjectFunctionDefs && OriginalCode.Name.Content.StartsWith("gml_Object_");
+
+            if (!IsObjectCode)
+            {
+                bool hasObjectFuncs = OriginalCode.ChildEntries.Find((child) => {
+                    return child.Name.Content.EndsWith("_" + OriginalCode.Name.Content) &&
+                        !child.Name.Content.StartsWith("gml_Script_anon_") &&
+                        !child.Name.Content.StartsWith("gml_Script____struct___");
+                }) is not null;
+                
+                if (hasObjectFuncs)
+                    IsObjectCode = true;
+            }
         }
 
         private void MakeAssetDictionary()
