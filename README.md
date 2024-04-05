@@ -3,16 +3,16 @@
 A fork of [UndertaleModTool](https://github.com/krzys-h/UndertaleModTool) with a lot of features for Pizza Tower modding and stuff.
 
 ## Features
-- Features from AwfulNasty's [UTMT fork](https://github.com/AwfulNasty/UndertaleModTool/):
-  - Can open scr_player_mach3
-  - Button to add creation code to rooms and objects in rooms
-  - Middle-mouse-button room scrolling
-  - Scaling objects by dragging the edges of one
-- Features from [SrPerez's UTMT fork](https://github.com/GithubSPerez/UndertaleModTool/):
-  - Additional functions for structs and stuff
-- Features from CST1229's [UTMT Super Usable](https://github.com/CST1229/UndertaleModTool/tree/super-usable) (which is a fork of UTMT Usable):
-  - Types for some Pizza Tower stuff, like `spr_*` variables for characterspr and state IDs
-  - Automatic selection/creation of instance layers and grid snapping when dragging objects into rooms
+- A tile editor
+- Can open gml_Object_obj_player_Step_0
+- Struct support in the compiler
+- Anonymous function support
+- Self call support (`self.func()`)
+- Automatic selection/creation of instance layers and grid snapping when dragging objects into rooms
+- Support for the GMS2.3.7+ boolean type, so true/false no longer turns into 1 and 0
+- Button to add creation code to rooms and objects in rooms
+- Room editor improvements: middleclick-drag scrolling, scaling objects by dragging their edges, easy creation of creation code, and more
+- Many other compiler/decompiler fixes and features
 - And more to come in the future!
 
 ## Download
@@ -20,13 +20,18 @@ A fork of [UndertaleModTool](https://github.com/krzys-h/UndertaleModTool) with a
 There are a few ways to get UTMTCE:
 - 1: Download the current release build from [GameBanana](https://gamebanana.com/tools/14193/)
 - 2: Get the latest dev build from [Github Actions artifacts](https://github.com/XDOneDude/UndertaleModToolCE/actions/)
-- 3: [Compile it yourself](#compiling)
+- 3: Compile it yourself; the steps are [the same as in vanilla UTMT](https://github.com/krzys-h/UndertaleModTool#compilation-instructions)
 
-## Compiling
+## Credits
+UndertaleModTool and its forks are open-source and licensed under [GPLv3](https://github.com/UnderminersTeam/UndertaleModTool/blob/master/LICENSE.txt), so they can be used without credit, without needing to ask for permission.
 
-[Same as vanilla UTMT.](https://github.com/krzys-h/UndertaleModTool#compilation-instructions)
-
-
+- [The Underminers team](https://github.com/UnderminersTeam): made the original UndertaleModTool
+- [CST1229](https://github.com/CST1229): "Lead programmer"; most features, application icon
+- [FlashNin](https://github.com/XDOneDude): Repository owner
+- Authors of used forks:
+  - [AwfulNasty](https://github.com/AwfulNasty): Room editor changes
+  - [Jacky720](https://github.com/Jacky720): Misc. changes (e.g decompiler parenthesis cleanup)
+  - [SrPerez](https://github.com/GithubSPerez): Additional GML functions, inspiration for struct support
 
 <!--
   commandline building:
