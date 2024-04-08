@@ -1152,6 +1152,7 @@ namespace UndertaleModLib.Decompiler
                 builtin_vars.Add("content_arr", AssetIDType.GameObject);
                 builtin_vars.Add("spawnpool", AssetIDType.GameObject);
                 builtin_vars.Add("spawn_arr", AssetIDType.GameObject);
+                AddOverrideFor("gml_Object_obj_ending_create_0", "spawn_arr", AssetIDType.Sprite);
                 builtin_vars.Add("dark_arr", AssetIDType.GameObject);
                 builtin_vars.Add("flash_arr", AssetIDType.GameObject);
                 builtin_vars.Add("collision_list", AssetIDType.GameObject);
@@ -1234,6 +1235,11 @@ namespace UndertaleModLib.Decompiler
                 builtin_vars.Add("panicspr", AssetIDType.Sprite);
                 builtin_vars.Add("bossarr", AssetIDType.Sprite);
                 builtin_vars.Add("palettetexture", AssetIDType.Sprite);
+                builtin_vars.Add("switchstart", AssetIDType.Sprite);
+                builtin_vars.Add("switchend", AssetIDType.Sprite);
+                builtin_vars.Add("_hurt", AssetIDType.Sprite);
+                builtin_vars.Add("_dead", AssetIDType.Sprite);
+                builtin_vars.Add("treasure_arr", AssetIDType.Sprite);
 
                 builtin_vars.Add("storedspriteindex", AssetIDType.Sprite);
                 builtin_vars.Add("icon", AssetIDType.Sprite);
@@ -1246,6 +1252,8 @@ namespace UndertaleModLib.Decompiler
                 builtin_vars.Add("bc", AssetIDType.Color);
                 builtin_vars.Add("tc", AssetIDType.Color);
                 builtin_vars.Add("gameframe_blend", AssetIDType.Color);
+                builtin_vars.Add("c1", AssetIDType.Color);
+                builtin_vars.Add("c2", AssetIDType.Color);
 
                 builtin_vars.Add("gameframe_caption_icon", AssetIDType.Sprite);
 
@@ -1336,10 +1344,14 @@ namespace UndertaleModLib.Decompiler
                 builtin_funcs["scr_pizzaface_p3_do_player_attack"] =
                     new[] { AssetIDType.GameObject };
 
+                builtin_funcs["scr_boss_do_hurt_phase2"] =
+                    new[] { AssetIDType.GameObject };
+
                 builtin_funcs["vigilante_cancel_attack"] =
                     new[] { AssetIDType.PT_State, AssetIDType.Repeat };
 
                 builtin_funcs["check_slope"] = new[] { AssetIDType.GameObject };
+                builtin_funcs["check_slope_player"] = new[] { AssetIDType.GameObject };
                 builtin_funcs["try_solid"] =
                     new[] { AssetIDType.Other, AssetIDType.Other, AssetIDType.GameObject, AssetIDType.Other };
 
@@ -1362,6 +1374,23 @@ namespace UndertaleModLib.Decompiler
 
                 builtin_funcs["randomize_animations"] =
                     new[] { AssetIDType.Sprite, AssetIDType.Repeat };
+
+                builtin_funcs["tdp_draw_text_color"] =
+                    new[] {
+                        AssetIDType.Other, AssetIDType.Other, AssetIDType.Other,
+                        AssetIDType.Color, AssetIDType.Color, AssetIDType.Color, AssetIDType.Color,
+                        AssetIDType.Other
+                    };
+                builtin_funcs["scr_draw_text_arr"] =
+                    new[] {
+                        AssetIDType.Other, AssetIDType.Other, AssetIDType.Other,
+                        AssetIDType.Color, AssetIDType.Other
+                    };
+                builtin_funcs["lang_draw_sprite"] =
+                    new[] {AssetIDType.Sprite, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other};
+
+                // this should really be in the part that runs for all games
+                return_types["layer_background_get_sprite"] = AssetIDType.Sprite;
 
                 if (data.Code is not null)
                 {
