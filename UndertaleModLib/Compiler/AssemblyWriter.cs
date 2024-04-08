@@ -65,11 +65,6 @@ namespace UndertaleModLib.Compiler
 
                 public UndertaleInstruction Emit(Opcode opcode, DataType type1, DataType type2)
                 {
-                    if (opcode == Opcode.Conv)
-                    {
-
-
-                    }
                     var res = new UndertaleInstruction()
                     {
                         Kind = opcode,
@@ -2064,7 +2059,19 @@ namespace UndertaleModLib.Compiler
                                     continue;
                                 }
 
-                                AssembleArrayPush(cw, e.Children[next]);
+                                AssembleArrayPush(cw, e.Children[next], !duplicate);
+                                if (CompileContext.GMS2_3 && e.Children[next].Children.Count > 2)
+                                {
+                                    for (int i = 2; i < e.Children[next].Children.Count; i++)
+                                    {
+                                        if (cw.typeStack.Count > 0 && cw.typeStack.Peek() != DataType.Int32)
+                                        {
+                                            cw.Emit(Opcode.Conv, cw.typeStack.Peek(), DataType.Int32);
+                                        }
+                                        cw.Emit(Opcode.Break, DataType.Int16).Value = (short)-4; // pushac
+                                        AssembleExpression(cw, e.Children[next].Children[i]); // this needs error handling
+                                    }
+                                }
                                 bool notLast = (next + 1 < e.Children.Count);
                                 if (!notLast && duplicate) // ha ha, double negatives
                                 {
@@ -2073,13 +2080,24 @@ namespace UndertaleModLib.Compiler
                                     else
                                         cw.Emit(Opcode.Dup, DataType.Int32).Extra = 1;
                                 }
-                                cw.varPatches.Add(new VariablePatch()
+                                if (CompileContext.GMS2_3 && e.Children[next].Children.Count > 1)
                                 {
-                                    Target = cw.EmitRef(Opcode.Push, DataType.Variable),
-                                    Name = e.Children[next].Text,
-                                    InstType = (forceInstType != InstanceType.Undefined) ? forceInstType : GetIDPrefixSpecial(e.Children[next].ID),
-                                    VarType = VariableType.Array
-                                });
+                                    if (e.Children[next].Children.Count > 2 && cw.typeStack.Count > 0 && cw.typeStack.Peek() != DataType.Int32)
+                                    {
+                                        cw.Emit(Opcode.Conv, cw.typeStack.Peek(), DataType.Int32);
+                                    }
+                                    cw.Emit(Opcode.Break, DataType.Int16).Value = (short)-2; // pushaf
+                                }
+                                else
+                                {
+                                    cw.varPatches.Add(new VariablePatch()
+                                    {
+                                        Target = cw.EmitRef(Opcode.Push, DataType.Variable),
+                                        Name = e.Children[next].Text,
+                                        InstType = (forceInstType != InstanceType.Undefined) ? forceInstType : GetIDPrefixSpecial(e.Children[next].ID),
+                                        VarType = VariableType.Array
+                                    });
+                                }
                                 cw.typeStack.Push(DataType.Variable);
                                 if (notLast)
                                 {
