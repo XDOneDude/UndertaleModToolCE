@@ -5,42 +5,57 @@ namespace UndertaleModLib.Decompiler;
 
 public static partial class Decompiler
 {
-    // Represents a high-level assignment statement.
+    /// <summary>
+    /// Represents a high-level assignment statement.
+    /// </summary>
     public class AssignmentStatement : Statement
     {
+        /// <summary>
+        /// The variable that will get something assigned to.
+        /// </summary>
         public ExpressionVar Destination;
+        /// <summary>
+        /// The value that will be assigned.
+        /// </summary>
         public Expression Value;
 
-        public bool HasVarKeyword;
+        /// <summary>
+        /// Whether the destination variable is a local variable.
+        /// </summary>
+        public bool IsLocalVariable;
 
         public bool IsScriptAssign;
 
         private bool _isStructDefinition, _checkedForDefinition;
+        
+        /// <summary>
+        /// Whether the destination variable is a struct.
+        /// </summary>
         public bool IsStructDefinition
         {
             get
             {
                 // Quick hack
-                if (!_checkedForDefinition)
-                {
-                    try
-                    {
-                        if (Destination.Var.Name.Content.StartsWith("___struct___", StringComparison.InvariantCulture))
-                        {
-                            Expression val = Value;
-                            while (val is ExpressionCast cast)
-                                val = cast;
+                if (_checkedForDefinition) 
+                    return _isStructDefinition;
 
-                            if (val is FunctionDefinition def)
-                            {
-                                def.PromoteToStruct();
-                                _isStructDefinition = true;
-                            }
+                try
+                {
+                    if (Destination.Var.Name.Content.StartsWith("___struct___", StringComparison.InvariantCulture))
+                    {
+                        Expression val = Value;
+                        while (val is ExpressionCast cast)
+                            val = cast;
+
+                        if (val is FunctionDefinition def)
+                        {
+                            def.PromoteToStruct();
+                            _isStructDefinition = true;
                         }
                     }
-                    catch (Exception) { }
-                    _checkedForDefinition = true;
                 }
+                catch (Exception) { }
+                _checkedForDefinition = true;
                 return _isStructDefinition;
             }
         }
@@ -60,16 +75,13 @@ public static partial class Decompiler
 
             string varName = Destination.ToString(context);
 
-            if (gms2 && !HasVarKeyword)
+            if (gms2 && !IsLocalVariable)
             {
                 var data = context.GlobalContext.Data;
-                if (data != null)
-                {
-                    if (Destination.Var.InstanceType == UndertaleInstruction.InstanceType.Local && context.LocalVarDefinesUsed.Peek().Add(varName)) {
-                        HasVarKeyword = true;
-                        context.LocalVarDefines.Add(varName);
-                    }
-                }
+                var locals = data?.CodeLocals.For(context.TargetCode);
+                // Stop decompiler from erroring on missing CodeLocals
+                if (locals is not null && locals.HasLocal(varName) && context.LocalVarDefines.Add(varName))
+                    IsLocalVariable = true;
             }
 
             // Someone enlighten me on structs, I'm steering clear for now.
@@ -80,11 +92,10 @@ public static partial class Decompiler
                 return functionVal.ToString(context);
             }
 
-            string prefix = (
+            string varPrefix = (
                 Destination.Var.InstanceType == UndertaleInstruction.InstanceType.Static ? "static " :
-                HasVarKeyword ? "var " : ""
+                IsLocalVariable ? "var " : ""
             );
-
             // Check for possible ++, --, or operation equal (for single vars)
             if (Value is ExpressionTwo two && (two.Argument1 is ExpressionVar) &&
                 (two.Argument1 as ExpressionVar).Var == Destination.Var)
@@ -119,7 +130,7 @@ public static partial class Decompiler
                     {
                         if (!(context.GlobalContext.Data?.GeneralInfo?.BytecodeVersion > 14 && v1.Opcode != UndertaleInstruction.Opcode.Push && Destination.Var.InstanceType != UndertaleInstruction.InstanceType.Self))
 
-                                return String.Format("{0}{1} {2}= {3}", prefix, varName, Expression.OperationToPrintableString(two.Opcode), two.Argument2.ToString(context));                    }
+                                return String.Format("{0}{1} {2}= {3}", varPrefix, varName, Expression.OperationToPrintableString(two.Opcode), two.Argument2.ToString(context));                    }
                 }
             }
 
@@ -131,7 +142,7 @@ public static partial class Decompiler
             else
                 stringOfValue = Value.ToString(context);
 
-            return String.Format("{0}{1}{2} {3}", prefix, varName, context.DecompilingStruct ? ":" : " =", stringOfValue);
+            return String.Format("{0}{1}{2} {3}", varPrefix, varName, context.DecompilingStruct ? ":" : " =", stringOfValue);
         }
 
         public override Statement CleanStatement(DecompileContext context, BlockHLStatement block)
