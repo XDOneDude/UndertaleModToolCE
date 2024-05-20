@@ -47,6 +47,7 @@ namespace UndertaleModTool
         public static readonly PropertyInfo visualOffProp = typeof(Canvas).GetProperty("VisualOffset", BindingFlags.NonPublic | BindingFlags.Instance);
         private static readonly MainWindow mainWindow = Application.Current.MainWindow as MainWindow;
         private static readonly Regex trailingNumberRegex = new(@"\d+$", RegexOptions.Compiled);
+        public static RoutedUICommand PasteShiftCommand = new("Alternate paste command", "PasteShift", typeof(UndertaleRoomEditor));
         private readonly Type[] movableTypes = { typeof(Layer), typeof(GameObject), typeof(Tile), typeof(SpriteInstance), typeof(SequenceInstance), typeof(ParticleSystemInstance) };
 
         // used for the flashing animation when a room object is selected
@@ -1458,6 +1459,16 @@ namespace UndertaleModTool
 
         public void Command_Paste(object sender, ExecutedRoutedEventArgs e)
         {
+            Paste();
+        }
+
+        public void Command_PasteShift(object sender, ExecutedRoutedEventArgs e)
+        {
+            Paste(true);
+        }
+
+        public void Paste(bool shift = false)
+        {
             /*IDataObject data = Clipboard.GetDataObject();
             UndertaleObject obj = data.GetData(data.GetFormats()[0]) as UndertaleObject;
             if (obj != null)
@@ -1489,6 +1500,12 @@ namespace UndertaleModTool
                 }
 
                 Point mousePos = roomCanvas.IsMouseOver ? Mouse.GetPosition(roomCanvas) : new();
+                if (!shift)
+                {
+                    int gridWidth = Math.Max(Convert.ToInt32(room.GridWidth), 1);
+                    int gridHeight = Math.Max(Convert.ToInt32(room.GridHeight), 1);
+                    mousePos = new Point(Math.Floor(mousePos.X / gridWidth) * gridWidth, Math.Floor(mousePos.Y / gridHeight) * gridHeight);
+                }
                 UndertaleObject newObj = AddObjectCopy(room, layer, copied, true, -1, mousePos);
 
                 if (newObj is not null)

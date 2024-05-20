@@ -32,10 +32,7 @@ namespace UndertaleModTool
         public static TileEditorSettings instance { get; set; } = new();
         public bool BrushTiling { get; set; } = true;
 
-        public bool RoomPreviewBool { get { return RoomPreviewVisibility == Visibility.Visible; } set {
-            RoomPreviewVisibility = value ? Visibility.Visible : Visibility.Hidden;
-        } }
-        public Visibility RoomPreviewVisibility { get; set; } = Visibility.Visible;
+        public bool RoomPreviewBool { get; set; } = true;
 
         public bool ShowGridBool { get { return ShowGrid == Visibility.Visible; } set {
             ShowGrid = value ? Visibility.Visible : Visibility.Hidden;

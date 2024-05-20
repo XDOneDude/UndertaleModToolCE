@@ -14,6 +14,7 @@
 >
     <Window.Resources>
         <local:CachedTileDataLoader x:Key="CachedTileDataLoader"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/> <!-- (built-in converter) -->
         <Style x:Key="NearestNeighbor">
             <Setter Property="RenderOptions.BitmapScalingMode" Value="NearestNeighbor"/>
             <Setter Property="UIElement.SnapsToDevicePixels" Value="True"/>
@@ -137,7 +138,7 @@
                     </Canvas.Background>
 
                     <Image
-                        Visibility="{Binding settings.RoomPreviewVisibility, Mode=OneWay}"
+                        Visibility="{Binding settings.RoomPreviewBool, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}"
                         Canvas.Left="{Binding RoomPrevOffsetX, Mode=OneWay}"
                         Canvas.Top="{Binding RoomPrevOffsetY, Mode=OneWay}"
                         Source="{Binding RoomPreview, Mode=OneWay}"
