@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UndertaleModLib.Models;
-using UndertaleModLib.Compiler;
 using static UndertaleModLib.Models.UndertaleGeneralInfo;
 
 

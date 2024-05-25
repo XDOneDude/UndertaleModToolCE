@@ -62,7 +62,8 @@ public static partial class Decompiler
 
 
         // Casts this expression to a GMS2.3.7+ boolean.
-        internal virtual void CastToBoolean(DecompileContext context) {
+        internal virtual void CastToBoolean(DecompileContext context)
+        {
             Type = UndertaleInstruction.DataType.Boolean;
         }
 

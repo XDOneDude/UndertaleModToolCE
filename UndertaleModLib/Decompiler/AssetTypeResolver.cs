@@ -1761,12 +1761,14 @@ namespace UndertaleModLib.Decompiler
                 builtin_funcs["gml_Script_scr_draw_sprite_tiled_area"] = new[] { AssetIDType.Sprite, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Color, AssetIDType.Boolean };
                 builtin_funcs["gml_Script_c_actorsetsprites"] = new[] { AssetIDType.Other, AssetIDType.Sprite, AssetIDType.Sprite, AssetIDType.Sprite, AssetIDType.Sprite };
                 builtin_funcs["gml_Script_c_actortoobject"] = new[] { AssetIDType.GameObject };
+                builtin_funcs["gml_Script_scr_marker_animated"] = new[] { AssetIDType.Other, AssetIDType.Other, AssetIDType.Sprite, AssetIDType.Other };
                 builtin_funcs["scr_marker_animated"] = new[] { AssetIDType.Other, AssetIDType.Other, AssetIDType.Sprite, AssetIDType.Other };
                 builtin_funcs["gml_Script_c_jump_sprite"] = new[] { AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Sprite, AssetIDType.Sprite };
                 builtin_funcs["gml_Script_scr_dark_marker_animated"] = new[] { AssetIDType.Other, AssetIDType.Other, AssetIDType.Sprite, AssetIDType.Boolean };
                 builtin_funcs["scr_act_charsprite"] = new[] { AssetIDType.Sprite, AssetIDType.Other, AssetIDType.Other, AssetIDType.Boolean };
                 builtin_funcs["scr_draw_sprite_tiled_area"] = new[] { AssetIDType.Sprite, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Color, AssetIDType.Boolean };
-                builtin_funcs["c_actorsetsprites"] = new[] { AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Sprite, AssetIDType.Boolean };
+                builtin_funcs["c_actorsetsprites"] = new[] { AssetIDType.Other, AssetIDType.Sprite, AssetIDType.Sprite, AssetIDType.Sprite, AssetIDType.Sprite };
+                builtin_funcs["c_actortoobject"] = new[] { AssetIDType.GameObject };
                 builtin_funcs["c_jump_sprite"] = new[] { AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Other, AssetIDType.Sprite, AssetIDType.Sprite };
                 builtin_funcs["scr_dark_marker_animated"] = new[] { AssetIDType.Other, AssetIDType.Other, AssetIDType.Sprite, AssetIDType.Boolean };
                 builtin_funcs["_background_set"] = new[] { AssetIDType.Other, AssetIDType.Other, AssetIDType.Sprite };
@@ -1885,7 +1887,6 @@ namespace UndertaleModLib.Decompiler
                 builtin_vars.Add("sourceobject", AssetIDType.GameObject);
                 //builtin_vars.Add("target", AssetIDType.GameObject);
                 builtin_vars.Add("writergod", AssetIDType.GameObject);
-                builtin_vars.Add("k", AssetIDType.GameObject);
                 AddOverrideFor("obj_carcutscene", "k", AssetIDType.GameObject);
                 AddOverrideFor("obj_carcutscene_ch1", "k", AssetIDType.GameObject);
                 builtin_vars.Add("childBullet", AssetIDType.GameObject);
@@ -2401,6 +2402,32 @@ namespace UndertaleModLib.Decompiler
                 // C TIER quality
                 builtin_vars.Add("sound1", AssetIDType.Sound);
                 builtin_vars.Add("sound2", AssetIDType.Sound);
+            }
+
+            // In 2.3.7+, booleans don't need to be typed.
+            // Turn any boolean types (other than overrides) into AssetIDType.Other
+            // so integers don't turn into booleans when they shouldn't
+            if (data.IsVersionAtLeast(2, 3, 7))
+            {
+                foreach (KeyValuePair<string, AssetIDType> kvp in builtin_vars)
+                {
+                    if (kvp.Value == AssetIDType.Boolean)
+                        builtin_vars.Remove(kvp.Key);
+                }
+                foreach (KeyValuePair<string, AssetIDType> kvp in return_types)
+                {
+                    if (kvp.Value == AssetIDType.Boolean)
+                        builtin_vars.Remove(kvp.Key);
+                }
+                foreach (KeyValuePair<string, AssetIDType[]> kvp in builtin_funcs)
+                {
+                    AssetIDType[] arr = kvp.Value;
+                    for (int i = 0; i < arr.Length; i++)
+                    {
+                        if (arr[i] == AssetIDType.Boolean)
+                            arr[i] = AssetIDType.Other;
+                    }
+                }
             }
         }
 

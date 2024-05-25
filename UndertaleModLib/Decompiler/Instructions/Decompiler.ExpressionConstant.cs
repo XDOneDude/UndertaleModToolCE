@@ -28,7 +28,8 @@ public static partial class Decompiler
             return true;
         }
 
-        internal override void CastToBoolean(DecompileContext context) {
+        internal override void CastToBoolean(DecompileContext context)
+        {
             if (Type == UndertaleInstruction.DataType.Int16 && Value is (short)0 or (short)1)
             {
                 Type = UndertaleInstruction.DataType.Boolean;
