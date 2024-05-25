@@ -1335,6 +1335,13 @@ namespace UndertaleModLib.Decompiler
             return (statement is ExpressionConstant constant) && constant.EqualsNumber(number);
         }
 
+        // A bool-like can be either 1, 0, true or false.
+        private static bool TestBoolLike(Statement statement, bool boolean, DecompileContext context = null)
+        {
+            statement = UnCast(statement);
+            return (statement is ExpressionConstant constant) && constant.EqualsBoolLike(boolean);
+        }
+
         public static List<Statement> HLDecompile(DecompileContext context, Dictionary<uint, Block> blocks, Block entryPoint, Block rootExitPoint)
         {
             Dictionary<Block, List<Block>> loops = ComputeNaturalLoops(blocks, entryPoint);
