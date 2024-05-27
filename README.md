@@ -1,4 +1,4 @@
-# UndertaleModTool: Community Edition
+# UndertaleModTool Community Edition
 
 A fork of [UndertaleModTool](https://github.com/UnderminersTeam/UndertaleModTool) with a lot of features for Pizza Tower modding and stuff.
 

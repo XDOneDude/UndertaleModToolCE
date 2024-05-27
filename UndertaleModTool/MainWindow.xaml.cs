@@ -205,11 +205,14 @@ namespace UndertaleModTool
         // Version info
         public static string Edition = "(Git: " + GitVersion.GetGitVersion().Substring(0, 7) + ")";
 
+        // i don't wanna change the assembly versions that reflect the utmt version
+        public static string CEVersion = "0.6.0";
+
         // On debug, build with git versions and provided release version. Otherwise, use the provided release version only.
 #if DEBUG
-        public static string Version = Assembly.GetExecutingAssembly().GetName().Version.ToString() + (Edition != "" ? " - " + Edition : "");
+        public static string Version = CEVersion + (Edition != "" ? " - " + Edition : "");
 #else
-        public static string Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+        public static string Version = CEVersion;
 #endif
 
         private static readonly Color darkColor = Color.FromArgb(255, 32, 32, 32);
@@ -238,7 +241,7 @@ namespace UndertaleModTool
             Highlighted = new DescriptionView("Welcome to UndertaleModTool!", "Open a data.win file to get started, then double click on the items on the left to view them.");
             OpenInTab(Highlighted);
 
-            TitleMain = "UndertaleModTool: Community Edition";
+            TitleMain = "UndertaleModTool Community Edition v" + Version;
 
             CanSave = false;
             CanSafelySave = false;
@@ -2854,6 +2857,19 @@ namespace UndertaleModTool
         public async void UpdateApp(SettingsWindow window)
         {
             //TODO: rewrite this slightly + comment this out so this is clearer on what this does.
+            
+            bool forceOppositeVersion = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+            bool isDebug = Version.Contains("Git:");
+            if (forceOppositeVersion) {
+                string versionStr = isDebug ? "Debug" : "Release";
+                string oppositeVersionStr = isDebug ? "Release" : "Debug";
+                if (this.ShowQuestion($"Shift is held; this will download the opposite build type ({oppositeVersionStr}, current type is {versionStr}).\nUpdate anyway?") != MessageBoxResult.Yes)
+                {
+                    window.UpdateButtonEnabled = true;
+                    return;
+                }
+                isDebug = !isDebug;
+            }
 
             window.UpdateButtonEnabled = false;
 
@@ -2887,7 +2903,7 @@ namespace UndertaleModTool
                 return;
             }
 
-            string configStr = Version.Contains("Git:") ? "Debug" : "Release";
+            string configStr = isDebug ? "Debug" : "Release";
             // UTMTCE is only built in single-file mode, so force that
             bool isSingleFile = true; //!File.Exists(Path.Combine(ExePath, "UndertaleModTool.dll"));
             string assemblyLocation = AppDomain.CurrentDomain.GetAssemblies()
