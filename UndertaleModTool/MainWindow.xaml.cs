@@ -2864,17 +2864,16 @@ namespace UndertaleModTool
             // remove the invalid characters (everything within square brackets) from the version string.
             Regex invalidChars = new Regex(@"Git:|[ (),/:;<=>?@[\]{}]");
             string version = invalidChars.Replace(Version, "");
-            httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UndertaleModTool", version));
+            httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UndertaleModToolCE", version));
 
             double bytesToMB = 1024 * 1024;
 
             if (!Environment.Is64BitOperatingSystem)
             {
                 this.ShowWarning("Your operating system is 32-bit.\n" +
-                                  "The 32-bit (x86) version of UndertaleModTool is obsolete.\n" +
-                                  "If you wish to continue using the 32-bit version of UndertaleModTool, either use the GitHub Actions Artifacts, " +
-                                  "the Nightly builds if you don't have a GitHub account, or compile UTMT yourself.\n" +
-                                  "For any questions or more information, ask in the Underminers Discord server.");
+                                  "UndertaleModTool Community Edition is not built in 32-bit... wait?!\n" +
+                                  "You have to compile UTMTCE in order to use it in 32-bit mode.\n" +
+                                  "For any questions or more information, ask in the tool's GameBanana page.");
                 window.UpdateButtonEnabled = true;
                 return;
 
@@ -2889,14 +2888,15 @@ namespace UndertaleModTool
             }
 
             string configStr = Version.Contains("Git:") ? "Debug" : "Release";
-            bool isSingleFile = !File.Exists(Path.Combine(ExePath, "UndertaleModTool.dll"));
+            // UTMTCE is only built in single-file mode, so force that
+            bool isSingleFile = true; //!File.Exists(Path.Combine(ExePath, "UndertaleModTool.dll"));
             string assemblyLocation = AppDomain.CurrentDomain.GetAssemblies()
                                       .First(x => x.GetName().Name.StartsWith("System.Collections")).Location; // any of currently used assemblies
             bool isBundled = !Regex.Match(assemblyLocation, @"C:\\Program Files( \(x86\))*\\dotnet\\shared\\").Success;
-            string patchName = $"GUI-windows-latest-{configStr}-isBundled-{isBundled.ToString().ToLower()}-isSingleFile-{isSingleFile.ToString().ToLower()}";
+            string patchName = $"UTMTCE-GUI64BIT-windows-latest-{configStr}-isBundled-{isBundled.ToString().ToLower()}-isSingleFile-{isSingleFile.ToString().ToLower()}";
 
-            string baseUrl = "https://api.github.com/repos/krzys-h/UndertaleModTool/actions/";
-            string detectedActionName = "Publish continuous release of UndertaleModTool";
+            string baseUrl = "https://api.github.com/repos/XDOneDude/UndertaleModToolCE/actions/";
+            string detectedActionName = "Publish GUI";
 
             // Fetch the latest workflow run
             var result = await HttpGetAsync(baseUrl + "runs?branch=master&status=success&per_page=20");
@@ -2931,7 +2931,7 @@ namespace UndertaleModTool
             DateTime currDate = File.GetLastWriteTime(Path.Combine(ExePath, "UndertaleModTool.exe"));
             DateTime lastDate = (DateTime)action["updated_at"];
             if (lastDate.Subtract(currDate).TotalMinutes <= 10)
-                if (this.ShowQuestion("UndertaleModTool is already up to date.\nUpdate anyway?") != MessageBoxResult.Yes)
+                if (this.ShowQuestion("UTMTCE is already up to date.\nUpdate anyway?") != MessageBoxResult.Yes)
                 {
                     window.UpdateButtonEnabled = true;
                     return;
@@ -2951,7 +2951,7 @@ namespace UndertaleModTool
 
             if (Environment.Is64BitOperatingSystem && !Environment.Is64BitProcess)
             {
-                if (this.ShowQuestion("Detected 32-bit (x86) version of UndertaleModTool on an 64-bit operating system.\n" +
+                if (this.ShowQuestion("Detected 32-bit (x86) version of UTMTCE on an 64-bit operating system.\n" +
                                  "It's highly recommended to use the 64-bit version instead.\n" +
                                  "Do you wish to download it?") != MessageBoxResult.Yes)
                 {
@@ -2961,10 +2961,13 @@ namespace UndertaleModTool
             }
 
             JObject artifact = null;
+            string artifacts = "";
             for (int index = 0; index < artifactList.Count; index++)
             {
                 var currentArtifact = (JObject)artifactList[index];
                 string artifactName = (string)currentArtifact["name"];
+
+                artifacts += "\n" + artifactName;
 
                 // If the tool ever becomes cross platform this needs to check the OS
                 if (artifactName.Equals(patchName))
@@ -2972,7 +2975,7 @@ namespace UndertaleModTool
             }
             if (artifact is null)
             {
-                this.ShowError("Failed to find the artifact!");
+                this.ShowError("Failed to find the artifact!\nWas looking for: " + patchName + "\n\nArtifacts:\n" + artifacts);
                 window.UpdateButtonEnabled = true;
                 return;
             }
@@ -3028,7 +3031,7 @@ namespace UndertaleModTool
                             if (ex.Message.StartsWith("Unable to read data")
                                 && e.Error.InnerException.Message.StartsWith("The SSL connection could not be established"))
                             {
-                                errMsg = "Failed to download new version of UndertaleModTool.\n" +
+                                errMsg = "Failed to download new version of UTMTCE.\n" +
                                          "Error - The SSL connection could not be established.";
 
                                 bool isWin7 = Environment.OSVersion.Version.Major == 6;
@@ -3052,15 +3055,16 @@ namespace UndertaleModTool
                         else
                             errMsg = e.Error.Message;
 
-                        this.ShowError($"Failed to download new version of UndertaleModTool.\nError - {errMsg}.");
+                        this.ShowError($"Failed to download new version of UTMTCE.\nError - {errMsg}.");
                         window.UpdateButtonEnabled = true;
                         return;
                     }
 
                     // Unzip double-zipped update
-                    ZipFile.ExtractToDirectory(Path.Combine(tempFolder, "Update.zip.zip"), tempFolder, true);
-                    File.Move(Path.Combine(tempFolder, $"{patchName}.zip"), Path.Combine(tempFolder, "Update.zip"));
-                    File.Delete(Path.Combine(tempFolder, "Update.zip.zip"));
+                    // UTMTCE updates seem to be single-zipped??
+                    // ZipFile.ExtractToDirectory(Path.Combine(tempFolder, "Update.zip.zip"), tempFolder, true);
+                    // File.Move(Path.Combine(tempFolder, $"{patchName}.zip"), Path.Combine(tempFolder, "Update.zip"));
+                    // File.Delete(Path.Combine(tempFolder, "Update.zip.zip"));
 
                     string updaterFolder = Path.Combine(ExePath, "Updater");
                     if (!File.Exists(Path.Combine(updaterFolder, "UndertaleModToolUpdater.exe")))
@@ -3092,7 +3096,7 @@ namespace UndertaleModTool
 
                     window.UpdateButtonEnabled = true;
 
-                    this.ShowMessage("UndertaleModTool will now close to finish the update.");
+                    this.ShowMessage("UTMTCE will now close to finish the update.");
 
                     Process.Start(new ProcessStartInfo(Path.Combine(updaterFolderTemp, "UndertaleModToolUpdater.exe"))
                     {
@@ -3122,7 +3126,7 @@ namespace UndertaleModTool
                 });
 
                 // The Artifact is already zipped then zipped again by the download archive
-                webClient.DownloadFileAsync(new Uri(downloadUrl), Path.Combine(tempFolder, "Update.zip.zip"));
+                webClient.DownloadFileAsync(new Uri(downloadUrl), Path.Combine(tempFolder, "Update.zip"));
             }
         }
 
