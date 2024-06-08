@@ -113,7 +113,7 @@ namespace UndertaleModLib.Compiler
             // but there isn't really any other way to do so
             IsObjectCode = ObjectFunctionDefs && OriginalCode.Name.Content.StartsWith("gml_Object_");
 
-            if (!IsObjectCode)
+            if (!IsObjectCode && !ObjectFunctionDefs)
             {
                 bool hasObjectFuncs = OriginalCode.ChildEntries.Find((child) => {
                     return child.Name.Content.EndsWith("_" + OriginalCode.Name.Content) &&

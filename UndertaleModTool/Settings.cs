@@ -26,7 +26,7 @@ namespace UndertaleModTool
 
 
 
-        private bool _ptAutoStates = false;
+        private bool _ptAutoStates = true;
 
         public bool PTAutoStates { get => _ptAutoStates; set {
             _ptAutoStates = value;
