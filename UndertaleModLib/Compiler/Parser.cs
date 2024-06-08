@@ -1794,7 +1794,13 @@ namespace UndertaleModLib.Compiler
                     { ID = procVar.ID, Text = varName };
                 Statement body = new Statement();
 
+                // If we don't set IsConstructor, the game will crash
+                // when creating the struct
+                Statement isConstructor = new Statement();
+                isConstructor.Text = "constructor";
+
                 function.Children.Add(args);
+                function.Children.Add(isConstructor);
                 function.Children.Add(body);
 
                 Statement functionAssign = new Statement(Statement.StatementKind.Assign, new Lexer.Token(TokenKind.Assign));
@@ -1844,7 +1850,13 @@ namespace UndertaleModLib.Compiler
                     a.Children.Add(left);
                     a.Children.Add(new Statement(TokenKind.Assign, a.Token));
 
-                    Statement expr = Optimize(context, ParseExpression(context));
+                    Statement expr = ParseExpression(context);
+                    if (expr is null)
+                    {
+                        ReportCodeError("Malformed struct literal.", false);
+                        break;
+                    }
+                    expr = Optimize(context, expr);
                     if (expr.Kind == Statement.StatementKind.ExprConstant)
                     {
                         // Constants can be inlined

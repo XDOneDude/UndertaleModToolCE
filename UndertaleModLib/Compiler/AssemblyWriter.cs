@@ -1444,7 +1444,7 @@ namespace UndertaleModLib.Compiler
                                 ArgCount = -1
                             });
                             cw.Emit(Opcode.Conv, DataType.Int32, DataType.Variable);
-                            if (isConstructor || isStructDef)
+                            if (isConstructor)
                             {
                                 cw.funcPatches.Add(new FunctionPatch()
                                 {
