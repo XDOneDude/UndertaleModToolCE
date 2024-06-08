@@ -209,11 +209,11 @@ namespace UndertaleModTool
         public static string CEVersion = "0.5.5";
 
         // On debug, build with git versions and provided release version. Otherwise, use the provided release version only.
-#if DEBUG
+//#if DEBUG
         public static string Version = CEVersion + (Edition != "" ? " - " + Edition : "");
-#else
+/*#else
         public static string Version = CEVersion;
-#endif
+#endif*/
 
         private static readonly Color darkColor = Color.FromArgb(255, 32, 32, 32);
         private static readonly Color darkLightColor = Color.FromArgb(255, 48, 48, 48);

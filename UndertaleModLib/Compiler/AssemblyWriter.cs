@@ -1263,7 +1263,7 @@ namespace UndertaleModLib.Compiler
                 cw.typeStack.Push(DataType.Variable);
             }
 
-            private static void AssembleExpression(CodeWriter cw, Parser.Statement e, Parser.Statement funcDefName = null)
+            private static void AssembleExpression(CodeWriter cw, Parser.Statement e)
             {
                 switch (e.Kind)
                 {

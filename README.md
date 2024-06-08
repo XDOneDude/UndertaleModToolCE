@@ -19,8 +19,9 @@ A fork of [UndertaleModTool](https://github.com/UnderminersTeam/UndertaleModTool
 
 There are a few ways to get UTMTCE:
 - 1: Download the current release build from [GameBanana](https://gamebanana.com/tools/14193/)
-- 2: Get the latest dev build from [Github Actions artifacts](https://github.com/XDOneDude/UndertaleModToolCE/actions/)
-- 3: Compile it yourself; the steps are [the same as in vanilla UTMT](https://github.com/krzys-h/UndertaleModTool#compilation-instructions)
+- 2: In v0.5.5 and above, go to Settings -> Download latest dev build to update to the latest dev build (GitHub commit, I don't know why we're calling them dev builds).
+- 3: Get a dev build from [Github Actions artifacts](https://github.com/XDOneDude/UndertaleModToolCE/actions/) (requires a GitHub account)
+- 4: Compile it yourself; the steps are [the same as in vanilla UTMT](https://github.com/krzys-h/UndertaleModTool#compilation-instructions)
 
 ## Credits
 UndertaleModTool and its forks are open-source and licensed under [GPLv3](https://github.com/UnderminersTeam/UndertaleModTool/blob/master/LICENSE.txt), so they can be used without credit, without needing to ask for permission.
