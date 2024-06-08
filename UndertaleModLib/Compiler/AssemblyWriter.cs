@@ -276,6 +276,8 @@ namespace UndertaleModLib.Compiler
                                     Code = childEntry,
                                     IsConstructor = patch.isConstructor
                                 };
+                                // If we don't set IsConstructor, the game will crash when creating the struct
+                                if (patch.Name.StartsWith("___struct___")) childScript.IsConstructor = true;
                                 compileContext.Data.Scripts.Add(childScript);
 
                                 UndertaleFunction childFunction = new()
@@ -1239,26 +1241,12 @@ namespace UndertaleModLib.Compiler
 
             private static void AssembleStructDef(CodeWriter cw, Parser.Statement str)
             {
-                /* Example struct definition
-                ----- AssembleStatement:
-                push.i gml_Script____struct___utmt_test
-                conv.i.v
-                call.i @@NullObject@@(argc=0)
-                call.i method(argc=2)
-                dup.v 0
-                pushi.e -16
-                pop.v.v [stacktop]static.___struct___utmt_test
-                ----- new FunctionPatch (this function):
-                call.i @@NewGMLObject@@(argc=1)
-                ----- Variable set:
-                pop.v.v self.a
-                */
-
                 List<Parser.Statement> leaked = str.Children[0].Children;
                 // Just push these leaked variables onto the stack
-                // We need to do this in reverse since function arguments 
+                // We need to do this in reverse since function arguments
                 // are parsed in reverse stack order
-                for (int i = leaked.Count - 1; i >= 0; i--) {
+                for (int i = leaked.Count - 1; i >= 0; i--)
+                {
                     Parser.Statement statement = leaked[i];
                     AssembleExpression(cw, statement);
                 }
@@ -1275,7 +1263,7 @@ namespace UndertaleModLib.Compiler
                 cw.typeStack.Push(DataType.Variable);
             }
 
-            private static void AssembleExpression(CodeWriter cw, Parser.Statement e)
+            private static void AssembleExpression(CodeWriter cw, Parser.Statement e, Parser.Statement funcDefName = null)
             {
                 switch (e.Kind)
                 {
@@ -1361,7 +1349,7 @@ namespace UndertaleModLib.Compiler
                         AssembleFunctionCall(cw, e); // the return value in this case must be used
                         break;
                     case Parser.Statement.StatementKind.ExprStruct:
-                        AssembleStructDef(cw, e); 
+                        AssembleStructDef(cw, e);
                         break;
                     case Parser.Statement.StatementKind.ExprVariableRef:
                         AssembleVariablePush(cw, e);
@@ -1456,14 +1444,17 @@ namespace UndertaleModLib.Compiler
                                 ArgCount = -1
                             });
                             cw.Emit(Opcode.Conv, DataType.Int32, DataType.Variable);
-                            if (isConstructor) {
+                            if (isConstructor || isStructDef)
+                            {
                                 cw.funcPatches.Add(new FunctionPatch()
                                 {
                                     Target = cw.EmitRef(Opcode.Call, DataType.Int32),
                                     Name = "@@NullObject@@",
                                     ArgCount = 0
                                 });
-                            } else {
+                            } 
+                            else
+                            {
                                 cw.Emit(Opcode.PushI, DataType.Int16).Value = (short)-1;
                                 cw.Emit(Opcode.Conv, DataType.Int32, DataType.Variable);
                             }

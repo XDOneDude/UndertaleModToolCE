@@ -1436,14 +1436,14 @@ namespace UndertaleModLib.Decompiler
             return statement;
         }
 
-        private static bool TestNumber(Statement statement, int number, DecompileContext context = null)
+        private static bool TestNumber(Statement statement, int number)
         {
             statement = UnCast(statement);
             return (statement is ExpressionConstant constant) && constant.EqualsNumber(number);
         }
 
         // A bool-like can be either 1, 0, true or false.
-        private static bool TestBoolLike(Statement statement, bool boolean, DecompileContext context = null)
+        private static bool TestBoolLike(Statement statement, bool boolean)
         {
             statement = UnCast(statement);
             return (statement is ExpressionConstant constant) && constant.EqualsBoolLike(boolean);

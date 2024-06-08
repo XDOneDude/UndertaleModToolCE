@@ -93,7 +93,7 @@ public static partial class Decompiler
 
             string prefix = (
                 Destination.Var.InstanceType == UndertaleInstruction.InstanceType.Static ? "static " :
-                IsLocalVariable ? "var " : ""
+                (IsLocalVariable && !context.DecompilingStruct) ? "var " : ""
             );
 
             // Check for possible ++, --, or operation equal (for single vars)
