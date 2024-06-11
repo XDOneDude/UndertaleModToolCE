@@ -21,7 +21,6 @@ using UndertaleModLib;
 using UndertaleModLib.Models;
 using UndertaleModLib.Scripting;
 using UndertaleModTool.Windows;
-using static UndertaleModLib.Models.UndertaleGameObject;
 
 namespace UndertaleModTool
 {
@@ -71,7 +70,7 @@ namespace UndertaleModTool
                     FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         public static DependencyProperty ObjectEventActionProperty =
-            DependencyProperty.Register("ObjectEventAction", typeof(EventAction),
+            DependencyProperty.Register("ObjectEventAction", typeof(UndertaleGameObject.EventAction),
                 typeof(UndertaleObjectReference),
                 new FrameworkPropertyMetadata(null,
                     FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
@@ -107,9 +106,9 @@ namespace UndertaleModTool
             set { SetValue(ObjectTypeProperty, value); }
         }
 
-        public EventAction ObjectEventAction
+        public UndertaleGameObject.EventAction ObjectEventAction
         {
-            get { return (EventAction)GetValue(ObjectEventActionProperty); }
+            get { return (UndertaleGameObject.EventAction)GetValue(ObjectEventActionProperty); }
             set { SetValue(ObjectEventActionProperty, value); }
         }
 
