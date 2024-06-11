@@ -279,12 +279,12 @@ public class UndertaleGameObject : UndertaleNamedResource, INotifyPropertyChange
     // TODO: Add documentation for these methods.
     // These methods are used by scripts for getting a code entry for a certain event of the game object.
 
-    public UndertaleCode EventHandlerFor(EventType type, uint subtype, IList<UndertaleString> strg, IList<UndertaleCode> codelist, IList<UndertaleCodeLocals> localslist)
+    public UndertaleCode EventHandlerFor(EventType type, uint subtype, IList<UndertaleString> strg, IList<UndertaleCode> codelist, IList<UndertaleCodeLocals> localslist, EventAction addToAction = null)
     {
         Event subtypeObj = Events[(int)type].FirstOrDefault(x => x.EventSubtype == subtype);
         if (subtypeObj == null)
             Events[(int)type].Add(subtypeObj = new Event() { EventSubtype = subtype });
-        EventAction action = subtypeObj.Actions.FirstOrDefault();
+        EventAction action = addToAction is null ? subtypeObj.Actions.FirstOrDefault() : addToAction;
         if (action == null)
         {
             subtypeObj.Actions.Add(action = new EventAction());

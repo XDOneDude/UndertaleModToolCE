@@ -21,6 +21,7 @@ using UndertaleModLib;
 using UndertaleModLib.Models;
 using UndertaleModLib.Scripting;
 using UndertaleModTool.Windows;
+using static UndertaleModLib.Models.UndertaleGameObject;
 
 namespace UndertaleModTool
 {
@@ -69,6 +70,12 @@ namespace UndertaleModTool
                 new FrameworkPropertyMetadata(true,
                     FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
+        public static DependencyProperty ObjectEventActionProperty =
+            DependencyProperty.Register("ObjectEventAction", typeof(EventAction),
+                typeof(UndertaleObjectReference),
+                new FrameworkPropertyMetadata(null,
+                    FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
         public static DependencyProperty ObjectEventTypeProperty =
             DependencyProperty.Register("ObjectEventType", typeof(EventType),
                 typeof(UndertaleObjectReference),
@@ -98,6 +105,12 @@ namespace UndertaleModTool
         {
             get { return (bool)GetValue(ObjectTypeProperty); }
             set { SetValue(ObjectTypeProperty, value); }
+        }
+
+        public EventAction ObjectEventAction
+        {
+            get { return (EventAction)GetValue(ObjectEventActionProperty); }
+            set { SetValue(ObjectEventActionProperty, value); }
         }
 
         public EventType ObjectEventType
@@ -159,7 +172,7 @@ namespace UndertaleModTool
                 else if (mainWindow.Selected is UndertaleGameObject gameObject)
                 {
                     // Generate the code entry
-                    UndertaleCode code = gameObject.EventHandlerFor(ObjectEventType, ObjectEventSubtype, mainWindow.Data.Strings, mainWindow.Data.Code, mainWindow.Data.CodeLocals);
+                    UndertaleCode code = gameObject.EventHandlerFor(ObjectEventType, ObjectEventSubtype, mainWindow.Data.Strings, mainWindow.Data.Code, mainWindow.Data.CodeLocals, ObjectEventAction);
 
                     ObjectReference = code;
                 }
