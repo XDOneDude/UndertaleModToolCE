@@ -1335,6 +1335,22 @@ namespace UndertaleModLib.Compiler
 
                     result.Children.Add(left);
                     result.Children.Add(right);
+
+                    while (IsNextToken(
+                        TokenKind.CompareEqual,
+                        TokenKind.Assign, // Legacy
+                        TokenKind.CompareGreater,
+                        TokenKind.CompareGreaterEqual,
+                        TokenKind.CompareLess,
+                        TokenKind.CompareLessEqual,
+                        TokenKind.CompareNotEqual
+                    ))
+                    {
+                        Statement nextRight = new Statement(Statement.StatementKind.ExprBinaryOp, remainingStageOne.Dequeue().Token);
+                        nextRight.Children.Add(result);
+                        nextRight.Children.Add(ParseBitwise(context));
+                        result = nextRight;
+                    }
                     return result;
                 }
                 else
