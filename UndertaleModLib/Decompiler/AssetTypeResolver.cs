@@ -2477,7 +2477,9 @@ namespace UndertaleModLib.Decompiler
                         UndertaleInstruction thisInstr = code.Instructions[j];
                         if (UndertaleInstruction.GetInstructionType(thisInstr.Kind)
                             != UndertaleInstruction.InstructionType.CallInstruction) continue;
-                        string funcName = thisInstr.Function.Target.Name.Content;
+                        string funcName = thisInstr?.Function?.Target?.Name?.Content;
+                        if (funcName is null)
+                            continue;
                         string stateName = null;
                         foreach (string prefix in statePrefix) {
                             if (funcName.StartsWith(prefix))
