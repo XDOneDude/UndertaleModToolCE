@@ -24,7 +24,7 @@ There are a few ways to get UTMTCE:
 - 4: Compile it yourself; the steps are [the same as in vanilla UTMT](https://github.com/krzys-h/UndertaleModTool#compilation-instructions)
 
 ## Credits
-UndertaleModTool and its forks are open-source and licensed under [GPLv3](https://github.com/UnderminersTeam/UndertaleModTool/blob/master/LICENSE.txt), so they can be used without credit, without needing to ask for permission.
+UndertaleModTool and its forks are open-source and licensed under [GPLv3](https://github.com/UnderminersTeam/UndertaleModTool/blob/master/LICENSE.txt), so they can be used without needing to ask for permission, with required credit (and source code, which is right here).
 
 - [The Underminers team](https://github.com/UnderminersTeam): made the original UndertaleModTool
 - [CST1229](https://github.com/CST1229): "Lead programmer"; most features, application icon

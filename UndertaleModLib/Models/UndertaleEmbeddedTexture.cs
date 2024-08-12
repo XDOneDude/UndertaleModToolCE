@@ -15,18 +15,14 @@ namespace UndertaleModLib.Models;
 /// An embedded texture entry in the data file.
 /// </summary>
 [PropertyChanged.AddINotifyPropertyChangedInterface]
-public class UndertaleEmbeddedTexture : UndertaleNamedResource, IDisposable,
-                                        IStaticChildObjCount, IStaticChildObjectsSize
+public class UndertaleEmbeddedTexture : UndertaleNamedResource, IDisposable
 {
-    /// <inheritdoc cref="IStaticChildObjCount.ChildObjectCount" />
-    public static readonly uint ChildObjectCount = 1;
-
-    /// <inheritdoc cref="IStaticChildObjectsSize.ChildObjectsSize" />
-    public static readonly uint ChildObjectsSize = 4; // minimal size
-
     /// <summary>
     /// The name of the embedded texture entry.
     /// </summary>
+    /// <remarks>
+    /// This is UTMT specific. The data file does not contain names for embedded textures.
+    /// </remarks>
     public UndertaleString Name { get; set; }
 
     /// <summary>
@@ -66,13 +62,13 @@ public class UndertaleEmbeddedTexture : UndertaleNamedResource, IDisposable,
     /// <summary>
     /// Helper variable for whether or not this texture is to be stored externally or not.
     /// </summary>
-    public bool TextureExternal { get; set; } = false;
+    public bool TextureExternal { get; set; }
 
 
     /// <summary>
     /// Helper variable for whether or not a texture was loaded yet.
     /// </summary>
-    public bool TextureLoaded { get; set; } = false;
+    public bool TextureLoaded { get; set; }
 
     /// <summary>
     /// Width of the texture. 2022.9+ only.
@@ -194,6 +190,29 @@ public class UndertaleEmbeddedTexture : UndertaleNamedResource, IDisposable,
 
         reader.ReadUndertaleObject(_textureData);
         TextureLoaded = true;
+    }
+
+    /// <inheritdoc cref="UndertaleObject.UnserializeChildObjectCount(UndertaleReader)"/>
+    public static uint UnserializeChildObjectCount(UndertaleReader reader)
+    {
+        uint count = 0;
+
+        reader.Position += 4; // "Scaled"
+        if (reader.undertaleData.IsVersionAtLeast(2, 0, 6))
+            reader.Position += 4; // "GeneratedMips"
+        if (reader.undertaleData.IsVersionAtLeast(2022, 3))
+            reader.Position += 4; // "_textureBlockSize"
+        if (reader.undertaleData.IsVersionAtLeast(2022, 9))
+            reader.Position += 12; // "TextureWidth", "TextureHeight", "IndexInGroup"
+
+        if (reader.ReadUInt32() != 0)
+        {
+            // If the texture data pointer isn't null, then this is an internal texture,
+            // which will create another object in the pool when reading the blob.
+            count++;
+        }
+
+        return count;
     }
 
     /// <summary>
