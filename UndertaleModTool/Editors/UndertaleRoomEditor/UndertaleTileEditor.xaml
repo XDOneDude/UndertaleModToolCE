@@ -255,7 +255,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="96"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Margin="3">Palette columns</TextBlock>
+                <TextBlock Grid.Column="0" Margin="3">Tileset columns</TextBlock>
                 <local:TextBoxDark Grid.Column="1" Margin="3,1" Padding="0,2" Text="{Binding PaletteColumns}"/>
             </Grid>
 
