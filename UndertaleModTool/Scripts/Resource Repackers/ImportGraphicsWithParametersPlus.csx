@@ -1,11 +1,12 @@
 // ImportGraphicsWithParameters but it can also set animation speeds and import more types of files
 // Edits made by CST1229
 // Based off of ImportGraphics.csx by the UTMT team
-// and ImportGraphicsWithParameters.csx by someone, I don't remmeber (AwfulNasty???)
-
+// and ImportGraphicsWithParameters.csx by someone, I don't remember (AwfulNasty???)
 // revision 2: fixed gif import not working unless the folder was named Sprites,
 // fixed the default origin being Top Center instead of Top Left and
 // reworded Is special type?'s boolean and the background import error message
+// revision 3: added optional support for single-frame sprites if a frame number is not specified
+// revision 4: added support for the texture handling refactor
 
 // Texture packer by Samuel Roy
 // Uses code from https://github.com/mfascia/TexturePacker
@@ -13,7 +14,6 @@
 using System;
 using System.IO;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.Collections;
 using System.IO.Compression;
 using System.Collections.Generic;
@@ -23,14 +23,18 @@ using System.Text.RegularExpressions;
 using UndertaleModLib.Util;
 using UndertaleModLib.Models;
 using System.Windows.Forms;
+using ImageMagick;
 
 EnsureDataLoaded();
 
 static bool importAsSprite = true;
+static bool importFrameless = false;
 
 string[] offsets = { "Top Left", "Top Center", "Top Right", "Center Left", "Center", "Center Right", "Bottom Left", "Bottom Center", "Bottom Right" };
 
 string[] playbacks = { "Frames Per Second", "Frames Per Game Frame" };
+
+static List<MagickImage> imagesToCleanup = new();
 
 float animSpd = 1;
 
@@ -48,268 +52,281 @@ string importFolder = CheckValidity();
 string packDir = Path.Combine(ExePath, "Packager");
 Directory.CreateDirectory(packDir);
 
-string sourcePath = importFolder;
-string outName = Path.Combine(packDir, "atlas.txt");
-int textureSize = 2048;
-int PaddingValue = 2;
-bool debug = false;
-Packer packer = new Packer();
-packer.Process(sourcePath, textureSize, PaddingValue, debug);
-packer.SaveAtlasses(outName);
-
-int lastTextPage = Data.EmbeddedTextures.Count - 1;
-int lastTextPageItem = Data.TexturePageItems.Count - 1;
-
-// Import everything into UMT
-string prefix = outName.Replace(Path.GetExtension(outName), "");
-int atlasCount = 0;
-OffsetResult();
-foreach (Atlas atlas in packer.Atlasses)
+try
 {
-	string atlasName = Path.Combine(packDir, String.Format(prefix + "{0:000}" + ".png", atlasCount));
-	Bitmap atlasBitmap = new Bitmap(atlasName);
-	UndertaleEmbeddedTexture texture = new UndertaleEmbeddedTexture();
-	texture.Name = new UndertaleString("Texture " + ++lastTextPage);
-	texture.TextureData.TextureBlob = File.ReadAllBytes(atlasName);
-	Data.EmbeddedTextures.Add(texture);
-	foreach (Node n in atlas.Nodes)
-	{
-		if (n.Texture != null)
-		{
-			// Initalize values of this texture
-			UndertaleTexturePageItem texturePageItem = new UndertaleTexturePageItem();
-			texturePageItem.Name = new UndertaleString("PageItem " + ++lastTextPageItem);
-			texturePageItem.SourceX = (ushort)n.Bounds.X;
-			texturePageItem.SourceY = (ushort)n.Bounds.Y;
-			texturePageItem.SourceWidth = (ushort)n.Bounds.Width;
-			texturePageItem.SourceHeight = (ushort)n.Bounds.Height;
-			texturePageItem.TargetX = 0;
-			texturePageItem.TargetY = 0;
-			texturePageItem.TargetWidth = (ushort)n.Bounds.Width;
-			texturePageItem.TargetHeight = (ushort)n.Bounds.Height;
-			texturePageItem.BoundingWidth = (ushort)n.Bounds.Width;
-			texturePageItem.BoundingHeight = (ushort)n.Bounds.Height;
-			texturePageItem.TexturePage = texture;
+    string sourcePath = importFolder;
+    string outName = Path.Combine(packDir, "atlas.txt");
+    int textureSize = 2048;
+    int PaddingValue = 2;
+    bool debug = false;
+    Packer packer = new Packer();
+    packer.Process(sourcePath, textureSize, PaddingValue, debug);
+    packer.SaveAtlasses(outName);
 
-			// Add this texture to UMT
-			Data.TexturePageItems.Add(texturePageItem);
+    int lastTextPage = Data.EmbeddedTextures.Count - 1;
+    int lastTextPageItem = Data.TexturePageItems.Count - 1;
 
-			// String processing
-			string stripped = Path.GetFileNameWithoutExtension(n.Texture.Source);
+    // Import everything into UTMT
+    string prefix = outName.Replace(Path.GetExtension(outName), "");
+    int atlasCount = 0;
+    OffsetResult();
+    foreach (Atlas atlas in packer.Atlasses)
+    {
+        string atlasName = Path.Combine(packDir, $"{prefix}{atlasCount:000}.png");
+        using MagickImage atlasImage = TextureWorker.ReadBGRAImageFromFile(atlasName);
+        IPixelCollection<byte> atlasPixels = atlasImage.GetPixels();
 
-			SpriteType spriteType = GetSpriteType(n.Texture.Source);
+        UndertaleEmbeddedTexture texture = new();
+        texture.Name = new UndertaleString($"Texture {++lastTextPage}");
+        texture.TextureData.Image = GMImage.FromMagickImage(atlasImage).ConvertToPng(); // TODO: other formats?
+        Data.EmbeddedTextures.Add(texture);
+        foreach (Node n in atlas.Nodes)
+        {
+            if (n.Texture != null)
+            {
+                // Initalize values of this texture
+                UndertaleTexturePageItem texturePageItem = new UndertaleTexturePageItem();
+                texturePageItem.Name = new UndertaleString("PageItem " + ++lastTextPageItem);
+                texturePageItem.SourceX = (ushort)n.Bounds.X;
+                texturePageItem.SourceY = (ushort)n.Bounds.Y;
+                texturePageItem.SourceWidth = (ushort)n.Bounds.Width;
+                texturePageItem.SourceHeight = (ushort)n.Bounds.Height;
+                texturePageItem.TargetX = 0;
+                texturePageItem.TargetY = 0;
+                texturePageItem.TargetWidth = (ushort)n.Bounds.Width;
+                texturePageItem.TargetHeight = (ushort)n.Bounds.Height;
+                texturePageItem.BoundingWidth = (ushort)n.Bounds.Width;
+                texturePageItem.BoundingHeight = (ushort)n.Bounds.Height;
+                texturePageItem.TexturePage = texture;
 
-			if (importAsSprite)
-			{
-				if ((spriteType == SpriteType.Unknown) || (spriteType == SpriteType.Font))
-				{
-					spriteType = SpriteType.Sprite;
-				}
-			}
+                // Add this texture to UMT
+                Data.TexturePageItems.Add(texturePageItem);
 
-			setTextureTargetBounds(texturePageItem, stripped, n);
+                // String processing
+                string stripped = Path.GetFileNameWithoutExtension(n.Texture.Source);
+
+                SpriteType spriteType = GetSpriteType(n.Texture.Source);
+
+                if (importAsSprite)
+                {
+                    if ((spriteType == SpriteType.Unknown) || (spriteType == SpriteType.Font))
+                    {
+                        spriteType = SpriteType.Sprite;
+                    }
+                }
+
+                setTextureTargetBounds(texturePageItem, stripped, n);
 
 
-			if (spriteType == SpriteType.Background)
-			{
-				UndertaleBackground background = Data.Backgrounds.ByName(stripped);
-				if (background != null)
-				{
-					background.Texture = texturePageItem;
-				}
-				else
-				{
-					// No background found, let's make one
-					UndertaleString backgroundUTString = Data.Strings.MakeString(stripped);
-					UndertaleBackground newBackground = new UndertaleBackground();
-					newBackground.Name = backgroundUTString;
-					newBackground.Transparent = false;
-					newBackground.Preload = false;
-					newBackground.Texture = texturePageItem;
-					Data.Backgrounds.Add(newBackground);
-				}
-			}
-			else if (spriteType == SpriteType.Sprite)
-			{
-				// Get sprite to add this texture to
-				string spriteName;
-				int lastUnderscore, frame;
-				try
-				{
-					lastUnderscore = stripped.LastIndexOf('_');
-					spriteName = stripped.Substring(0, lastUnderscore);
-					frame = Int32.Parse(stripped.Substring(lastUnderscore + 1));
-				}
-				catch (Exception e)
-				{
-					ScriptMessage("Error: Image " + stripped + " has an invalid name. Skipping...");
-					continue;
-				}
-				UndertaleSprite sprite = null;
-				sprite = Data.Sprites.ByName(spriteName);
+                if (spriteType == SpriteType.Background)
+                {
+                    UndertaleBackground background = Data.Backgrounds.ByName(stripped);
+                    if (background != null)
+                    {
+                        background.Texture = texturePageItem;
+                    }
+                    else
+                    {
+                        // No background found, let's make one
+                        UndertaleString backgroundUTString = Data.Strings.MakeString(stripped);
+                        UndertaleBackground newBackground = new UndertaleBackground();
+                        newBackground.Name = backgroundUTString;
+                        newBackground.Transparent = false;
+                        newBackground.Preload = false;
+                        newBackground.Texture = texturePageItem;
+                        Data.Backgrounds.Add(newBackground);
+                    }
+                }
+                else if (spriteType == SpriteType.Sprite)
+                {
+                    // Get sprite to add this texture to
+                    string spriteName;
+                    int lastUnderscore, frame;
+                    try
+                    {
+                        lastUnderscore = stripped.LastIndexOf('_');
+                        // check if the frame number is a valid string or not
+                        Int32.Parse(stripped.Substring(lastUnderscore + 1));
+                        spriteName = stripped.Substring(0, lastUnderscore);
+                        frame = Int32.Parse(stripped.Substring(lastUnderscore + 1));
+                    }
+                    catch (Exception e)
+                    {
+                        if (!importFrameless)
+                        {
+                            continue;
+                        }
+                        spriteName = stripped;
+                        frame = 0;
+                    }
 
-				if (spritesStartAt1.Contains(spriteName))
-				{
-					frame--;
-				}
+                    if (spritesStartAt1.Contains(spriteName))
+                    {
+                        frame--;
+                    }
 
-				// Create TextureEntry object
-				UndertaleSprite.TextureEntry texentry = new UndertaleSprite.TextureEntry();
-				texentry.Texture = texturePageItem;
+                    // Create TextureEntry object
+                    UndertaleSprite.TextureEntry texentry = new UndertaleSprite.TextureEntry();
+                    texentry.Texture = texturePageItem;
 
-				// Set values for new sprites
-				if (sprite == null)
-				{
-					UndertaleString spriteUTString = Data.Strings.MakeString(spriteName);
-					UndertaleSprite newSprite = new UndertaleSprite();
-					newSprite.Name = spriteUTString;
-					newSprite.Width = (uint)n.Bounds.Width;
-					newSprite.Height = (uint)n.Bounds.Height;
-					newSprite.MarginLeft = 0;
-					newSprite.MarginRight = n.Bounds.Width - 1;
-					newSprite.MarginTop = 0;
-					newSprite.MarginBottom = n.Bounds.Height - 1;
-					newSprite.GMS2PlaybackSpeedType = (AnimSpeedType)playback;
-					newSprite.GMS2PlaybackSpeed = animSpd;
-					newSprite.IsSpecialType = isSpecial;
-					newSprite.SVersion = specialVer;
-					switch (offresult)
-					{
-						case ("Top Left"):
-							newSprite.OriginX = 0;
-							newSprite.OriginY = 0;
-							break;
-						case ("Top Center"):
-							newSprite.OriginX = (int)(newSprite.Width / 2);
-							newSprite.OriginY = 0;
-							break;
-						case ("Top Right"):
-							newSprite.OriginX = (int)(newSprite.Width);
-							newSprite.OriginY = 0;
-							break;
-						case ("Center Left"):
-							newSprite.OriginX = 0;
-							newSprite.OriginY = (int)(newSprite.Height / 2);
-							break;
-						case ("Center"):
-							newSprite.OriginX = (int)(newSprite.Width / 2);
-							newSprite.OriginY = (int)(newSprite.Height / 2);
-							break;
-						case ("Center Right"):
-							newSprite.OriginX = (int)(newSprite.Width);
-							newSprite.OriginY = (int)(newSprite.Height / 2);
-							break;
-						case ("Bottom Left"):
-							newSprite.OriginX = 0;
-							newSprite.OriginY = (int)(newSprite.Height);
-							break;
-						case ("Bottom Center"):
-							newSprite.OriginX = (int)(newSprite.Width / 2);
-							newSprite.OriginY = (int)(newSprite.Height);
-							break;
-						case ("Bottom Right"):
-							newSprite.OriginX = (int)(newSprite.Width);
-							newSprite.OriginY = (int)(newSprite.Height);
-							break;
-					}
-					if (frame > 0)
-					{
-						for (int i = 0; i < frame; i++)
-							newSprite.Textures.Add(null);
-					}
-					newSprite.CollisionMasks.Add(newSprite.NewMaskEntry());
-					Rectangle bmpRect = new Rectangle(n.Bounds.X, n.Bounds.Y, n.Bounds.Width, n.Bounds.Height);
-					System.Drawing.Imaging.PixelFormat format = atlasBitmap.PixelFormat;
-					Bitmap cloneBitmap = atlasBitmap.Clone(bmpRect, format);
-					int width = ((n.Bounds.Width + 7) / 8) * 8;
-					BitArray maskingBitArray = new BitArray(width * n.Bounds.Height);
-					for (int y = 0; y < n.Bounds.Height; y++)
-					{
-						for (int x = 0; x < n.Bounds.Width; x++)
-						{
-							Color pixelColor = cloneBitmap.GetPixel(x, y);
-							maskingBitArray[y * width + x] = (pixelColor.A > 0);
-						}
-					}
-					BitArray tempBitArray = new BitArray(width * n.Bounds.Height);
-					for (int i = 0; i < maskingBitArray.Length; i += 8)
-					{
-						for (int j = 0; j < 8; j++)
-						{
-							tempBitArray[j + i] = maskingBitArray[-(j - 7) + i];
-						}
-					}
-					int numBytes;
-					numBytes = maskingBitArray.Length / 8;
-					byte[] bytes = new byte[numBytes];
-					tempBitArray.CopyTo(bytes, 0);
-					for (int i = 0; i < bytes.Length; i++)
-						newSprite.CollisionMasks[0].Data[i] = bytes[i];
-					newSprite.Textures.Add(texentry);
-					Data.Sprites.Add(newSprite);
-					continue;
-				}
-				if (frame > sprite.Textures.Count - 1)
-				{
-					while (frame > sprite.Textures.Count - 1)
-					{
-						sprite.Textures.Add(texentry);
-					}
-					continue;
-				}
-				sprite.Textures[frame] = texentry;
-				sprite.GMS2PlaybackSpeedType = (AnimSpeedType)playback;
-				sprite.GMS2PlaybackSpeed = animSpd;
-				sprite.IsSpecialType = isSpecial;
-				sprite.SVersion = specialVer;
-				switch (offresult)
-				{
-					case ("Top Left"):
-						sprite.OriginX = 0;
-						sprite.OriginY = 0;
-						break;
-					case ("Top Center"):
-						sprite.OriginX = (int)(sprite.Width / 2);
-						sprite.OriginY = 0;
-						break;
-					case ("Top Right"):
-						sprite.OriginX = (int)(sprite.Width);
-						sprite.OriginY = 0;
-						break;
-					case ("Center Left"):
-						sprite.OriginX = 0;
-						sprite.OriginY = (int)(sprite.Height / 2);
-						break;
-					case ("Center"):
-						sprite.OriginX = (int)(sprite.Width / 2);
-						sprite.OriginY = (int)(sprite.Height / 2);
-						break;
-					case ("Center Right"):
-						sprite.OriginX = (int)(sprite.Width);
-						sprite.OriginY = (int)(sprite.Height / 2);
-						break;
-					case ("Bottom Left"):
-						sprite.OriginX = 0;
-						sprite.OriginY = (int)(sprite.Height);
-						break;
-					case ("Bottom Center"):
-						sprite.OriginX = (int)(sprite.Width / 2);
-						sprite.OriginY = (int)(sprite.Height);
-						break;
-					case ("Bottom Right"):
-						sprite.OriginX = (int)(sprite.Width);
-						sprite.OriginY = (int)(sprite.Height);
-						break;
-				}
-			}
-		}
-	}
-	// Increment atlas
-	atlasCount++;
+                    // Set values for new sprites
+                    UndertaleSprite sprite = Data.Sprites.ByName(spriteName);
+                    if (sprite is null)
+                    {
+                        UndertaleString spriteUTString = Data.Strings.MakeString(spriteName);
+                        UndertaleSprite newSprite = new UndertaleSprite();
+                        newSprite.Name = spriteUTString;
+                        newSprite.Width = (uint)n.Bounds.Width;
+                        newSprite.Height = (uint)n.Bounds.Height;
+                        newSprite.MarginLeft = 0;
+                        newSprite.MarginRight = n.Bounds.Width - 1;
+                        newSprite.MarginTop = 0;
+                        newSprite.MarginBottom = n.Bounds.Height - 1;
+                        newSprite.GMS2PlaybackSpeedType = (AnimSpeedType)playback;
+                        newSprite.GMS2PlaybackSpeed = animSpd;
+                        newSprite.IsSpecialType = isSpecial;
+                        newSprite.SVersion = specialVer;
+                        switch (offresult)
+                        {
+                            case ("Top Left"):
+                                newSprite.OriginX = 0;
+                                newSprite.OriginY = 0;
+                                break;
+                            case ("Top Center"):
+                                newSprite.OriginX = (int)(newSprite.Width / 2);
+                                newSprite.OriginY = 0;
+                                break;
+                            case ("Top Right"):
+                                newSprite.OriginX = (int)(newSprite.Width);
+                                newSprite.OriginY = 0;
+                                break;
+                            case ("Center Left"):
+                                newSprite.OriginX = 0;
+                                newSprite.OriginY = (int)(newSprite.Height / 2);
+                                break;
+                            case ("Center"):
+                                newSprite.OriginX = (int)(newSprite.Width / 2);
+                                newSprite.OriginY = (int)(newSprite.Height / 2);
+                                break;
+                            case ("Center Right"):
+                                newSprite.OriginX = (int)(newSprite.Width);
+                                newSprite.OriginY = (int)(newSprite.Height / 2);
+                                break;
+                            case ("Bottom Left"):
+                                newSprite.OriginX = 0;
+                                newSprite.OriginY = (int)(newSprite.Height);
+                                break;
+                            case ("Bottom Center"):
+                                newSprite.OriginX = (int)(newSprite.Width / 2);
+                                newSprite.OriginY = (int)(newSprite.Height);
+                                break;
+                            case ("Bottom Right"):
+                                newSprite.OriginX = (int)(newSprite.Width);
+                                newSprite.OriginY = (int)(newSprite.Height);
+                                break;
+                        }
+                        if (frame > 0)
+                        {
+                            for (int i = 0; i < frame; i++)
+                                newSprite.Textures.Add(null);
+                        }
+                        newSprite.CollisionMasks.Add(newSprite.NewMaskEntry());
+
+                        int width = ((n.Bounds.Width + 7) / 8) * 8;
+                        BitArray maskingBitArray = new BitArray(width * n.Bounds.Height);
+                        for (int y = 0; y < n.Bounds.Height; y++)
+                        {
+                            for (int x = 0; x < n.Bounds.Width; x++)
+                            {
+                                IMagickColor<byte> pixelColor = atlasPixels.GetPixel(x + n.Bounds.X, y + n.Bounds.Y).ToColor();
+                                maskingBitArray[y * width + x] = (pixelColor.A > 0);
+                            }
+                        }
+                        BitArray tempBitArray = new BitArray(width * n.Bounds.Height);
+                        for (int i = 0; i < maskingBitArray.Length; i += 8)
+                        {
+                            for (int j = 0; j < 8; j++)
+                            {
+                                tempBitArray[j + i] = maskingBitArray[-(j - 7) + i];
+                            }
+                        }
+                        int numBytes = maskingBitArray.Length / 8;
+                        byte[] bytes = new byte[numBytes];
+                        tempBitArray.CopyTo(bytes, 0);
+                        for (int i = 0; i < bytes.Length; i++)
+                            newSprite.CollisionMasks[0].Data[i] = bytes[i];
+                        newSprite.Textures.Add(texentry);
+                        Data.Sprites.Add(newSprite);
+                        continue;
+                    }
+                    if (frame > sprite.Textures.Count - 1)
+                    {
+                        while (frame > sprite.Textures.Count - 1)
+                        {
+                            sprite.Textures.Add(texentry);
+                        }
+                        continue;
+                    }
+                    sprite.Textures[frame] = texentry;
+                    sprite.GMS2PlaybackSpeedType = (AnimSpeedType)playback;
+                    sprite.GMS2PlaybackSpeed = animSpd;
+                    sprite.IsSpecialType = isSpecial;
+                    sprite.SVersion = specialVer;
+                    switch (offresult)
+                    {
+                        case ("Top Left"):
+                            sprite.OriginX = 0;
+                            sprite.OriginY = 0;
+                            break;
+                        case ("Top Center"):
+                            sprite.OriginX = (int)(sprite.Width / 2);
+                            sprite.OriginY = 0;
+                            break;
+                        case ("Top Right"):
+                            sprite.OriginX = (int)(sprite.Width);
+                            sprite.OriginY = 0;
+                            break;
+                        case ("Center Left"):
+                            sprite.OriginX = 0;
+                            sprite.OriginY = (int)(sprite.Height / 2);
+                            break;
+                        case ("Center"):
+                            sprite.OriginX = (int)(sprite.Width / 2);
+                            sprite.OriginY = (int)(sprite.Height / 2);
+                            break;
+                        case ("Center Right"):
+                            sprite.OriginX = (int)(sprite.Width);
+                            sprite.OriginY = (int)(sprite.Height / 2);
+                            break;
+                        case ("Bottom Left"):
+                            sprite.OriginX = 0;
+                            sprite.OriginY = (int)(sprite.Height);
+                            break;
+                        case ("Bottom Center"):
+                            sprite.OriginX = (int)(sprite.Width / 2);
+                            sprite.OriginY = (int)(sprite.Height);
+                            break;
+                        case ("Bottom Right"):
+                            sprite.OriginX = (int)(sprite.Width);
+                            sprite.OriginY = (int)(sprite.Height);
+                            break;
+                    }
+                }
+            }
+        }
+        // Increment atlas
+        atlasCount++;
+    }
+
+    HideProgressBar();
+    ScriptMessage("Import Complete!");
 }
-
-HideProgressBar();
-ScriptMessage("Import Complete!");
+finally
+{
+	foreach (MagickImage img in imagesToCleanup) {
+		img.Dispose();
+	}
+}
 
 void setTextureTargetBounds(UndertaleTexturePageItem tex, string textureName, Node n)
 {
@@ -324,7 +341,7 @@ public class TextureInfo
 	public string Source;
 	public int Width;
 	public int Height;
-	public Image Image;
+	public MagickImage Image;
 }
 
 public enum SpriteType
@@ -348,9 +365,17 @@ public enum BestFitHeuristic
 	MaxOneAxis,
 }
 
+public struct Rect
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+}
+
 public class Node
 {
-	public Rectangle Bounds;
+    public Rect Bounds;
 	public TextureInfo Texture;
 	public SplitType SplitType;
 }
@@ -427,11 +452,13 @@ public class Packer
 		tw.WriteLine("source_tex, atlas_tex, x, y, width, height");
 		foreach (Atlas atlas in Atlasses)
 		{
-			string atlasName = String.Format(prefix + "{0:000}" + ".png", atlasCount);
-			//1: Save images
-			Image img = CreateAtlasImage(atlas);
-			img.Save(atlasName, System.Drawing.Imaging.ImageFormat.Png);
-			//2: save description in file
+            string atlasName = $"{prefix}{atlasCount:000}.png";
+
+            // 1: Save images
+            using (MagickImage img = CreateAtlasImage(atlas))
+                TextureWorker.SaveImageToFile(img, atlasName);
+
+            // 2: save description in file
 			foreach (Node n in atlas.Nodes)
 			{
 				if (n.Texture != null)
@@ -472,31 +499,29 @@ public class Packer
 				string dirName = Path.GetDirectoryName(fi.FullName);
 				string spriteName = Path.GetFileNameWithoutExtension(fi.FullName);
 
-				Image gif = Image.FromFile(fi.FullName);
-				FrameDimension dimension = new FrameDimension(gif.FrameDimensionsList[0]);
-				int frames = gif.GetFrameCount(dimension);
-				if (!isSprite && frames > 1)
+                MagickReadSettings settings = new()
+                {
+                    ColorSpace = ColorSpace.sRGB,
+                };
+                using MagickImageCollection gif = new(fi.FullName, settings);
+				int frames = gif.Count;
+                if (!isSprite && frames > 1)
 				{
 					throw new ScriptException(fi.FullName + " is a " + spriteType + ", but has more than 1 frame. Script has been stopped.");
 				}
 
-				for (int i = 0; i < frames; i++)
+				for (int i = frames - 1; i >= 0; i--)
 				{
-					if (gif.SelectActiveFrame(dimension, i) == 0)
-					{
-						AddSource(
-							(Image)gif.Clone(),
-							Path.Join(
-								dirName,
-								isSprite ?
-									(spriteName + "_" + i + ".png") : (spriteName + ".png")
-							)
-						);
-					}
-					else
-					{
-						throw new ScriptException("Could not select frame " + i + " of " + fi.FullName + ". Script has been stopped.");
-					}
+					AddSource(
+						(MagickImage)gif[i],
+						Path.Join(
+							dirName,
+							isSprite ?
+								(spriteName + "_" + i + ".png") : (spriteName + ".png")
+						)
+					);
+					// don't auto-dispose
+					gif.RemoveAt(i);
 				}
 			}
 			else if (ext == ".png")
@@ -530,17 +555,15 @@ public class Packer
 						throw new ScriptException(fi.FullName + " is not a sprite, but has more than 1 frame. Script has been stopped.");
 					}
 
-					Image img = Image.FromFile(fi.FullName);
-					if (img is null)
-					{
-						continue;
-					}
+                    MagickReadSettings settings = new()
+                    {
+                        ColorSpace = ColorSpace.sRGB,
+                    };
+                    using MagickImage img = new(fi.FullName, settings);
 					if ((img.Width % frames) > 0)
 					{
 						throw new ScriptException(fi.FullName + " has a width not divisible by the number of frames. Script has been stopped.");
 					}
-
-					Bitmap sheetBitmap = new Bitmap(img);
 
 					string dirName = Path.GetDirectoryName(fi.FullName);
 
@@ -549,9 +572,8 @@ public class Packer
 					for (int i = 0; i < frames; i++)
 					{
 						AddSource(
-							sheetBitmap.Clone(
-								new Rectangle(i * frameWidth, 0, frameWidth, frameHeight),
-								sheetBitmap.PixelFormat
+							(MagickImage)img.Clone(
+								i * frameWidth, 0, frameWidth, frameHeight
 							),
 							Path.Join(dirName,
 								isSprite ?
@@ -561,20 +583,22 @@ public class Packer
 					}
 				}
 				else
-				{
-					Image img = Image.FromFile(fi.FullName);
-					if (img != null)
-					{
-						AddSource(img, fi.FullName);
-					}
+                {
+                    MagickReadSettings settings = new()
+                    {
+                        ColorSpace = ColorSpace.sRGB,
+                    };
+                    MagickImage img = new(fi.FullName);
+					AddSource(img, fi.FullName);
 				}
 			}
 		}
 	}
 
-	private void AddSource(Image img, string fullName)
+	private void AddSource(MagickImage img, string fullName)
 	{
-		if (img.Width <= AtlasSize && img.Height <= AtlasSize)
+        imagesToCleanup.Add(img);
+        if (img.Width <= AtlasSize && img.Height <= AtlasSize)
 		{
 			TextureInfo ti = new TextureInfo();
 
@@ -589,9 +613,9 @@ public class Packer
 			ti.Source = fullName;
 			ti.Width = img.Width;
 			ti.Height = img.Height;
-			ti.Image = img;
+            ti.Image = img;
 
-			SourceTextures.Add(ti);
+            SourceTextures.Add(ti);
 
 			Log.WriteLine("Added " + fullName);
 		}
@@ -689,7 +713,8 @@ public class Packer
 		_Atlas.Nodes = new List<Node>();
 		textures = _Textures.ToList();
 		Node root = new Node();
-		root.Bounds.Size = new Size(_Atlas.Width, _Atlas.Height);
+        root.Bounds.Width = _Atlas.Width;
+        root.Bounds.Height = _Atlas.Height;
 		root.SplitType = SplitType.Horizontal;
 		freeList.Add(root);
 		while (freeList.Count > 0 && textures.Count > 0)
@@ -717,23 +742,18 @@ public class Packer
 		return textures;
 	}
 
-	private Image CreateAtlasImage(Atlas _Atlas)
+	private MagickImage CreateAtlasImage(Atlas _Atlas)
 	{
-		Image img = new Bitmap(_Atlas.Width, _Atlas.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-		Graphics g = Graphics.FromImage(img);
+        MagickImage img = new(MagickColors.Transparent, _Atlas.Width, _Atlas.Height);
 		foreach (Node n in _Atlas.Nodes)
 		{
-			if (n.Texture != null)
+			if (n.Texture is not null)
 			{
-				g.DrawImage(n.Texture.Image, n.Bounds);
+                using IMagickImage<byte> resizedSourceImg = TextureWorker.ResizeImage(n.Texture.Image, n.Bounds.Width, n.Bounds.Height);
+                img.Composite(resizedSourceImg, n.Bounds.X, n.Bounds.Y, CompositeOperator.Copy);
 			}
 		}
-		// DPI FIX START
-		Bitmap ResolutionFix = new Bitmap(img);
-		ResolutionFix.SetResolution(96.0F, 96.0F);
-		Image img2 = ResolutionFix;
-		return img2;
-		// DPI FIX END
+        return img;
 	}
 }
 
@@ -763,7 +783,7 @@ string CheckValidity()
 	bool recursiveCheck = ScriptQuestion(@"This script imports all sprites in all subdirectories recursively.
 If an image file is in a folder named ""Backgrounds"", then the image will be imported as a background.
 Otherwise, the image will be imported as a sprite, and allow you to select its origin point.
-Accepted sprite formats: separate frames starting at 0 or 1 (sprite_N.png), GM-style strip (sprite_stripN.png), animated GIF (sprite.gif).
+Accepted sprite formats: separate frames starting at 0 or 1 (sprite_N.png), GM-style strip (sprite_stripN.png), animated GIF (sprite.gif), optionally single image (sprite.png).
 Accepted background formats: single image (bg.png), single-frame GIF (bg.gif).
 Do you want to continue?");
 	if (!recursiveCheck)
@@ -776,6 +796,7 @@ Do you want to continue?");
 
 	//Stop the script if there's missing sprite entries or w/e.
 	bool hadMessage = false;
+	bool hadFramelessMessage = false;
 	string[] dirFiles = Directory.GetFiles(importFolder, "*.png", SearchOption.AllDirectories);
 	foreach (string file in dirFiles)
 	{
@@ -841,38 +862,84 @@ Pressing ""No"" will cause the program to ignore these images.");*/
 			try
 			{
 				spriteName = stripped.Substring(0, lastUnderscore);
+				// check if the frame number is a valid string or not
+		
+	
+																								  
+	
+							  
+	  
+	
+				Int32.Parse(stripped.Substring(lastUnderscore + 1));
 			}
 			catch
 			{
-				throw new ScriptException("Getting the sprite name of " + FileNameWithExtension + " failed.");
+				if (!hadFramelessMessage)
+				{
+					importFrameless = ScriptQuestion(FileNameWithExtension + @" does not seem to have a frame number or count. Import this image as a single-frame sprite named " + stripped + @"?
+Pressing ""No"" will cause the program to ignore these images.");
+					hadFramelessMessage = true;
+				}
+				if (importFrameless)
+				{
+					spriteName = stripped;
+				}
+				else
+				{
+					continue;
+				}
+				// throw new ScriptException("Getting the sprite name of " + FileNameWithExtension + " failed.");
 			}
-			Int32 validFrameNumber = 0;
-			try
-			{
-				validFrameNumber = Int32.Parse(stripped.Substring(lastUnderscore + 1));
-			}
-			catch
-			{
-				throw new ScriptException("The index of " + FileNameWithExtension + " could not be determined.");
-			}
+			
 			int frame = 0;
-			try
+			// if the sprite doesn't have an underscore, don't bother trying to parse it since it'll be single-frame anyways
+			if (spriteName != stripped)
 			{
-				frame = Int32.Parse(stripped.Substring(lastUnderscore + 1));
-			}
-			catch
-			{
-				throw new ScriptException(FileNameWithExtension + " is using letters instead of numbers. The script has stopped for your own protection.");
+				Int32 validFrameNumber = 0;
+				try
+				{
+					validFrameNumber = Int32.Parse(stripped.Substring(lastUnderscore + 1));
+				}
+				catch
+				{
+					if (!hadFramelessMessage)
+					{
+						importFrameless = ScriptQuestion(FileNameWithExtension + @" does not seem to have a frame number or count. Import this image as a single-frame sprite named " + stripped + @"?
+	Pressing ""No"" will cause the program to ignore these images.");
+						hadFramelessMessage = true;
+					}
+					if (importFrameless)
+					{
+						spriteName = stripped;
+					}
+					else
+					{
+						continue;
+					}
+					// throw new ScriptException("The index of " + FileNameWithExtension + " could not be determined.");
+				}
+				try
+				{
+					frame = Int32.Parse(stripped.Substring(lastUnderscore + 1));
+				}
+				catch
+				{
+					throw new ScriptException(FileNameWithExtension + " is using letters instead of numbers. The script has stopped for your own protection.");
+				}
 			}
 
 			int prevframe = 0;
-			if (frame != 0)
+			if (frame > 0)
 			{
 				prevframe = (frame - 1);
 			}
-			if (frame < 0)
+			else if (frame < 0)
 			{
 				throw new ScriptException(spriteName + " is using an invalid numbering scheme. The script has stopped for your own protection.");
+			}
+			else
+			{
+				continue;
 			}
 			string prevFrameName = spriteName + "_" + prevframe.ToString() + ".png";
 			string[] previousFrameFiles = Directory.GetFiles(importFolder, prevFrameName, SearchOption.AllDirectories);
