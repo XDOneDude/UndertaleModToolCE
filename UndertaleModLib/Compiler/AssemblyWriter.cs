@@ -499,7 +499,7 @@ namespace UndertaleModLib.Compiler
                 public enum ContextKind
                 {
                     Switch,
-                    With,
+                    With
                 }
 
                 public ContextKind Kind;
@@ -1137,6 +1137,7 @@ namespace UndertaleModLib.Compiler
                     i--;
                 }
 
+                i = cw.otherContexts.Count;
                 // Then with statements
                 foreach (OtherContext oc in cw.otherContexts)
                 {
@@ -1147,6 +1148,7 @@ namespace UndertaleModLib.Compiler
                         dropPopenv.JumpOffsetPopenvExitMagic = true;
                         if (cw.compileContext.Data?.GeneralInfo?.BytecodeVersion <= 14)
                             dropPopenv.JumpOffset = -1048576; // magic for older versions
+                    }
                     }
                 }
 
