@@ -43,11 +43,6 @@ namespace UndertaleModLib.Compiler
 
                 public UndertaleInstruction Emit(Opcode opcode)
                 {
-                    bool shouldEmit = true;
-                    if (opcode == Opcode.Popz) {
-                        bool _ignore = false;
-                    }
-                    if (!shouldEmit) return new UndertaleInstruction() {};
                     var res = new UndertaleInstruction()
                     {
                         Kind = opcode,
@@ -60,11 +55,6 @@ namespace UndertaleModLib.Compiler
 
                 public UndertaleInstruction Emit(Opcode opcode, DataType type1)
                 {
-                    bool shouldEmit = true;
-                    if (opcode == Opcode.Popz) {
-                        bool _ignore = false;
-                    }
-                    if (!shouldEmit) return new UndertaleInstruction() {};
                     var res = new UndertaleInstruction()
                     {
                         Kind = opcode,
