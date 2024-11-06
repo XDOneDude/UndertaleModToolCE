@@ -9,7 +9,7 @@
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "build",
-			"program": "${workspaceFolder}/UndertaleModTool/bin/Debug/net6.0-windows/UndertaleModTool.dll",
+			"program": "${workspaceFolder}/UndertaleModTool/bin/Debug/net8.0-windows/UndertaleModTool.dll",
 			"args": [],
 			"cwd": "${workspaceFolder}/UndertaleModTool",
 			"console": "internalConsole",

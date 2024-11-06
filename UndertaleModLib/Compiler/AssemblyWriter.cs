@@ -24,6 +24,8 @@ namespace UndertaleModLib.Compiler
                 public Stack<DataType> typeStack = new Stack<DataType>();
                 public Stack<Context> loopContexts = new Stack<Context>();
                 public Stack<OtherContext> otherContexts = new Stack<OtherContext>();
+                // used to ensure that the stack isn't cleaned up too much inside a function
+                public Stack<int> functionContextBoundaries = new Stack<int>();
                 // contains both loop and other contexts
                 public Stack<Context> contexts = new Stack<Context>();
                 public List<string> ErrorMessages = new List<string>();
@@ -35,11 +37,17 @@ namespace UndertaleModLib.Compiler
                 {
                     compileContext = context;
                     instructions = new List<UndertaleInstruction>(128);
+                    functionContextBoundaries.Push(0);
                     offset = 0;
                 }
 
                 public UndertaleInstruction Emit(Opcode opcode)
                 {
+                    bool shouldEmit = true;
+                    if (opcode == Opcode.Popz) {
+                        bool _ignore = false;
+                    }
+                    if (!shouldEmit) return new UndertaleInstruction() {};
                     var res = new UndertaleInstruction()
                     {
                         Kind = opcode,
@@ -52,6 +60,11 @@ namespace UndertaleModLib.Compiler
 
                 public UndertaleInstruction Emit(Opcode opcode, DataType type1)
                 {
+                    bool shouldEmit = true;
+                    if (opcode == Opcode.Popz) {
+                        bool _ignore = false;
+                    }
+                    if (!shouldEmit) return new UndertaleInstruction() {};
                     var res = new UndertaleInstruction()
                     {
                         Kind = opcode,
@@ -496,7 +509,7 @@ namespace UndertaleModLib.Compiler
                 public enum ContextKind
                 {
                     Switch,
-                    With
+                    With,
                 }
 
                 public ContextKind Kind;
@@ -1121,18 +1134,23 @@ namespace UndertaleModLib.Compiler
 
             private static void AssembleExit(CodeWriter cw)
             {
+                int functionBoundary = cw.functionContextBoundaries.Peek();
+                int i = cw.otherContexts.Count;
                 // First switch statements
                 foreach (OtherContext oc in cw.otherContexts)
                 {
+                    if (functionBoundary == i) break;
                     if (oc.Kind == OtherContext.ContextKind.Switch)
                     {
                         cw.Emit(Opcode.Popz, oc.TypeToPop);
                     }
+                    i--;
                 }
 
                 // Then with statements
                 foreach (OtherContext oc in cw.otherContexts)
                 {
+                    if (functionBoundary == i) break;
                     if (oc.Kind == OtherContext.ContextKind.With)
                     {
                         var dropPopenv = cw.Emit(Opcode.PopEnv);
@@ -1424,8 +1442,10 @@ namespace UndertaleModLib.Compiler
                             cw.compileContext.LocalVarsStack.Push(new HashSet<string>());
                             cw.loopContexts.Push(new Context(endPatch, startPatch));
                             cw.contexts.Push(cw.loopContexts.Peek());
+                            cw.functionContextBoundaries.Push(cw.otherContexts.Count);
                             AssembleStatement(cw, e.Children[2]); // body
                             AssembleExit(cw);
+                            cw.functionContextBoundaries.Pop();
                             cw.loopContexts.Pop();
                             cw.contexts.Pop();
                             endPatch.Finish(cw);
