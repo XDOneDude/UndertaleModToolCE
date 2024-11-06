@@ -1149,7 +1149,7 @@ namespace UndertaleModLib.Compiler
                         if (cw.compileContext.Data?.GeneralInfo?.BytecodeVersion <= 14)
                             dropPopenv.JumpOffset = -1048576; // magic for older versions
                     }
-                    }
+                    i--;
                 }
 
                 cw.Emit(Opcode.Exit, DataType.Int32);
