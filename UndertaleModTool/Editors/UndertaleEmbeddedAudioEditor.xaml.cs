@@ -67,11 +67,12 @@ namespace UndertaleModTool
                 try
                 {
                     byte[] data = File.ReadAllBytes(dlg.FileName);
-
-                    if (!isWav && !isOgg) {
+                    bool dataIsWav = data[0] == 'R' && data[1] == 'I' && data[2] == 'F' && data[3] == 'F';
+                    bool dataIsOgg = data[0] == 'O' && data[1] == 'g' && data[2] == 'g' && data[3] == 'S';
+                    if (!dataIsWav && !dataIsOgg) {
                         mainWindow.ShowError("Failed to import file!\r\nNot a WAV or OGG.", "Failed to import file");
                     }
-                    else if ((isWav && (data[0] != 'R' || data[1] != 'I' || data[2] != 'F' || data[3] != 'F')) || (isOgg && (data[0] != 'O' || data[1] != 'g' || data[2] != 'g' || data[3] != 'S'))) {
+                    else if ((isWav && dataIsOgg) || (isOgg && dataIsWav)) {
                         mainWindow.ShowError("Failed to import file!\r\nFormat doesn't match the original file.", "Failed to import file");
                     } else
                         target.Data = data;
