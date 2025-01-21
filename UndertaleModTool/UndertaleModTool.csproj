@@ -18,7 +18,7 @@
         <ResourceLanguages>en</ResourceLanguages>
         <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
         <!-- Suppress all missing XML comment warnings -->
-        <NoWarn>1591,1574,CA1416</NoWarn>
+        <NoWarn>1591,1574</NoWarn>
         <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
     <ItemGroup>

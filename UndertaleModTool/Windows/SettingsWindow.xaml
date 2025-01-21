@@ -6,7 +6,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:UndertaleModTool"
         mc:Ignorable="d"
-        Title="Settings" Height="Auto" Width="800" SizeToContent="Height" WindowStartupLocation="CenterOwner">
+        Title="Settings" Height="Auto" Width="800" SizeToContent="Height" WindowStartupLocation="CenterOwner" UseLayoutRounding="False">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Controls/TransparencyGridBrush.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid Margin="10">
             <Grid.ColumnDefinitions>
@@ -74,27 +81,33 @@
 
             <Separator Grid.Row="9" Grid.ColumnSpan="4" Margin="10"/>
 
-            <CheckBox Grid.Row="10" Grid.Column="0" Margin="3" VerticalAlignment="Center" Name="gridWidthCheckbox" Content="" IsChecked="{Binding GridWidthEnabled}"/>
-            <TextBlock Grid.Row="10" Grid.Column="0" Margin="25 2 2 2" VerticalAlignment="Center" Text="Global grid width" ToolTip="This option globally overrides the automatic assignment of a room's grid width based on the most used tile's width in that room."/>
-            <local:TextBoxDark Grid.Row="10" Grid.Column="1" Margin="3" IsEnabled="{Binding ElementName=gridWidthCheckbox, Path=IsChecked}" Text="{Binding GlobalGridWidth}"/>
+            <StackPanel Grid.Row="10" Grid.Column="0" Orientation="Horizontal">
+                <TextBlock Margin="3" Text="Transparency grid colors"/>
+                <local:TextBoxDark Width="80" Margin="3" Text="{Binding TransparencyGridColor1}" />
+                <local:TextBoxDark Width="80" Margin="3" Text="{Binding TransparencyGridColor2}" />
+            </StackPanel>
+            
+            <CheckBox Grid.Row="11" Grid.Column="0" Margin="3" VerticalAlignment="Center" Name="gridWidthCheckbox" Content="" IsChecked="{Binding GridWidthEnabled}"/>
+            <TextBlock Grid.Row="11" Grid.Column="0" Margin="25 2 2 2" VerticalAlignment="Center" Text="Global grid width" ToolTip="This option globally overrides the automatic assignment of a room's grid width based on the most used tile's width in that room."/>
+            <local:TextBoxDark Grid.Row="11" Grid.Column="1" Margin="3" IsEnabled="{Binding ElementName=gridWidthCheckbox, Path=IsChecked}" Text="{Binding GlobalGridWidth}"/>
 
-            <CheckBox Grid.Row="11" Grid.Column="0" Margin="3" VerticalAlignment="Center" Name="gridHeightCheckbox" Content="" IsChecked="{Binding GridHeightEnabled}"/>
-            <TextBlock Grid.Row="11" Grid.Column="0" Margin="25 2 2 2"  VerticalAlignment="Center" Text="Global grid height" ToolTip="This option globally overrides the automatic assignment of a room's grid height based on the most used tile's height in that room."/>
-            <local:TextBoxDark Grid.Row="11" Grid.Column="1" Margin="3" IsEnabled="{Binding ElementName=gridHeightCheckbox, Path=IsChecked}" Text="{Binding GlobalGridHeight}"/>
+            <CheckBox Grid.Row="12" Grid.Column="0" Margin="3" VerticalAlignment="Center" Name="gridHeightCheckbox" Content="" IsChecked="{Binding GridHeightEnabled}"/>
+            <TextBlock Grid.Row="12" Grid.Column="0" Margin="25 2 2 2"  VerticalAlignment="Center" Text="Global grid height" ToolTip="This option globally overrides the automatic assignment of a room's grid height based on the most used tile's height in that room."/>
+            <local:TextBoxDark Grid.Row="12" Grid.Column="1" Margin="3" IsEnabled="{Binding ElementName=gridHeightCheckbox, Path=IsChecked}" Text="{Binding GlobalGridHeight}"/>
 
-            <CheckBox Grid.Row="10" Grid.Column="2" Margin="3" VerticalAlignment="Center" Name="gridThicknessCheckBox" Content="" IsChecked="{Binding GridThicknessEnabled}"/>
-            <TextBlock Grid.Row="10" Grid.Column="2" Margin="25 2 2 2" VerticalAlignment="Center" Text="Global grid thickness" ToolTip="This option globally overrides the automatic assignment of a room's grid thickness."/>
-            <local:TextBoxDark Grid.Row="9" Grid.Column="3" Margin="3" IsEnabled="{Binding ElementName=gridThicknessCheckBox, Path=IsChecked}" Text="{Binding GlobalGridThickness}"/>
+            <CheckBox Grid.Row="12" Grid.Column="2" Margin="3" VerticalAlignment="Center" Name="gridThicknessCheckBox" Content="" IsChecked="{Binding GridThicknessEnabled}"/>
+            <TextBlock Grid.Row="12" Grid.Column="2" Margin="25 2 2 2" VerticalAlignment="Center" Text="Global grid thickness" ToolTip="This option globally overrides the automatic assignment of a room's grid thickness."/>
+            <local:TextBoxDark Grid.Row="12" Grid.Column="3" Margin="3" IsEnabled="{Binding ElementName=gridThicknessCheckBox, Path=IsChecked}" Text="{Binding GlobalGridThickness}"/>
 
-            <Separator Grid.Row="13" Grid.ColumnSpan="4" Margin="10"/>
+            <Separator Grid.Row="14" Grid.ColumnSpan="4" Margin="10"/>
 
-            <TextBlock Grid.Row="14" Grid.Column="0" Grid.ColumnSpan="4" Margin="3" TextWrapping="Wrap" Foreground="Red" FontWeight="Bold" Text="Warning: the following options are currently experimental, as the profile system is a work in progress. Usage of the system is at your own risk, and though it is relatively stable, it may not be compatible in the future."/>
+            <TextBlock Grid.Row="15" Grid.Column="0" Grid.ColumnSpan="4" Margin="3" TextWrapping="Wrap" Foreground="Red" FontWeight="Bold" Text="Warning: the following options are currently experimental, as the profile system is a work in progress. Usage of the system is at your own risk, and though it is relatively stable, it may not be compatible in the future."/>
 
-            <CheckBox Grid.Row="15" Grid.Column="0" Margin="3" VerticalAlignment="Center" Content="" IsChecked="{Binding ProfileModeEnabled}"/>
-            <TextBlock Grid.Row="15" Grid.Column="0" Margin="25 2 2 2" VerticalAlignment="Center" Text="Enable profile mode" ToolTip="Toggles the 'decompile once and compile many' profile mode. Enabled by default. May need to be disabled for certain operations."/>
+            <CheckBox Grid.Row="16" Grid.Column="0" Margin="3" VerticalAlignment="Center" Content="" IsChecked="{Binding ProfileModeEnabled}"/>
+            <TextBlock Grid.Row="16" Grid.Column="0" Margin="25 2 2 2" VerticalAlignment="Center" Text="Enable profile mode" ToolTip="Toggles the 'decompile once and compile many' profile mode. Enabled by default. May need to be disabled for certain operations."/>
 
-            <CheckBox Grid.Row="15" Grid.Column="2" Margin="3" VerticalAlignment="Center" Content="" IsChecked="{Binding ProfileMessageShown}"/>
-            <TextBlock Grid.Row="15" Grid.Column="2" Margin="25 2 2 2" VerticalAlignment="Center" Text="Profile mode message shown" ToolTip="On first load, this will show you the profile mode loaded message. If this somehow breaks, you can manually toggle it here."/>
+            <CheckBox Grid.Row="16" Grid.Column="2" Margin="3" VerticalAlignment="Center" Content="" IsChecked="{Binding ProfileMessageShown}"/>
+            <TextBlock Grid.Row="16" Grid.Column="2" Margin="25 2 2 2" VerticalAlignment="Center" Text="Profile mode message shown" ToolTip="On first load, this will show you the profile mode loaded message. If this somehow breaks, you can manually toggle it here."/>
 
             <CheckBox Grid.Row="17" Grid.Column="0" Margin="3" VerticalAlignment="Center" Content="" IsChecked="{Binding DeleteOldProfileOnSave}"/>
             <TextBlock Grid.Row="17" Grid.Column="0" Margin="25 2 2 2" VerticalAlignment="Center" Text="Delete old profile on saving" ToolTip="Deletes the profile obsoleted on saving. Saves on file space at the expense of losing code information for variants. Enabled by default."/>

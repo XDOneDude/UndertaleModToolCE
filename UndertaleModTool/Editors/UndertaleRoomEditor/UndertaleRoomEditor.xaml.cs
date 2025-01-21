@@ -1,3 +1,5 @@
+#pragma warning disable CA1416 // Validate platform compatibility
+
 using Microsoft.Win32;
 using System;
 using System.Buffers;
@@ -2367,10 +2369,11 @@ namespace UndertaleModTool
                 }
 
                 UndertaleTileEditor TileEditor = new UndertaleTileEditor(lay);
-                TileEditor.Show();
                 TileEditor.RoomPreview = GetTileEditorPreview(lay);
+                TileEditor.ShowDialog();
             }
         }
+
         private void AutoSizeTile_Click(object sender, RoutedEventArgs e)
         {
             if (ObjectEditor.Content is Layer lay && this.DataContext is UndertaleRoom room)
@@ -2389,9 +2392,9 @@ namespace UndertaleModTool
                     Convert.ToDouble(room.Height) / Convert.ToDouble(data.Background.GMS2TileHeight)
                 );
             }
-            return;
         }
     }
+
     public partial class RoomCanvas : Canvas
     {
         //True when middle click is held, scrolling the canvas
@@ -3135,3 +3138,5 @@ namespace UndertaleModTool
         }
     }
 }
+
+#pragma warning restore CA1416 // Validate platform compatibility

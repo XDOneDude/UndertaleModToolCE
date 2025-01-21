@@ -14,7 +14,8 @@
 >
     <Window.Resources>
         <local:CachedTileDataLoader x:Key="CachedTileDataLoader"/>
-        <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/> <!-- (built-in converter) -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
+        <!-- (built-in converter) -->
         <Style x:Key="NearestNeighbor">
             <Setter Property="RenderOptions.BitmapScalingMode" Value="NearestNeighbor"/>
             <Setter Property="UIElement.SnapsToDevicePixels" Value="True"/>
@@ -64,14 +65,12 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            
             <Grid Grid.Row="0" Grid.Column="0" Margin="0,0,8,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
                     <local:ButtonDark
                         Margin="3,1" Padding="3,2" VerticalAlignment="Center"
@@ -186,7 +185,7 @@
                     <Rectangle
                         Width="{Binding EditWidth, Mode=OneWay}"
                         Height="{Binding EditHeight, Mode=OneWay}"
-                        Visibility="{Binding settings.ShowGrid, Mode=OneWay}"
+                        Visibility="{Binding settings.ShowGridBool, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}"
                     >
                         <Rectangle.Fill>
                             <DrawingBrush
@@ -255,8 +254,10 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="96"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Margin="3">Tileset columns</TextBlock>
-                <local:TextBoxDark Grid.Column="1" Margin="3,1" Padding="0,2" Text="{Binding PaletteColumns}"/>
+                <TextBlock Grid.Column="0" Margin="3" TextAlignment="Right">Tileset columns</TextBlock>
+                <local:TextBoxDark Grid.Column="1" Margin="3,1" Padding="0,2" Text="{Binding PaletteColumns}" 
+                        ToolTip="Number of columns to use for the tile palette. Adjust if the tileset looks broken.
+Persists when the tile editor is closed, but not when the file is saved and reopened."/>
             </Grid>
 
             <ScrollViewer
@@ -307,7 +308,7 @@
                     <Rectangle
                         Width="{Binding PaletteWidth, Mode=OneWay}"
                         Height="{Binding PaletteHeight, Mode=OneWay}"
-                        Visibility="{Binding settings.ShowGrid, Mode=OneWay}"
+                        Visibility="{Binding settings.ShowGridBool, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}"
                     >
                         <Rectangle.Fill>
                             <DrawingBrush
@@ -390,6 +391,5 @@
                 VerticalAlignment="Center" Content="Apply" Click="ApplyButton_Click"
             ></local:ButtonDark>
         </Grid>
-        
     </Grid>
 </Window>

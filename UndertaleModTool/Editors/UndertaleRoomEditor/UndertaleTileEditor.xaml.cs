@@ -1,23 +1,14 @@
-﻿using Microsoft.Win32;
+﻿#pragma warning disable CA1416 // Validate platform compatibility
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using UndertaleModTool.Editors;
-using UndertaleModLib;
 using UndertaleModLib.Models;
 using static UndertaleModLib.Models.UndertaleRoom;
 
@@ -31,13 +22,8 @@ namespace UndertaleModTool
     {
         public static TileEditorSettings instance { get; set; } = new();
         public bool BrushTiling { get; set; } = true;
-
         public bool RoomPreviewBool { get; set; } = true;
-
-        public bool ShowGridBool { get { return ShowGrid == Visibility.Visible; } set {
-            ShowGrid = value ? Visibility.Visible : Visibility.Hidden;
-        } }
-        public Visibility ShowGrid { get; set; } = Visibility.Visible;
+        public bool ShowGridBool { get; set; } = true;
     }
 
     /// <summary>
@@ -106,11 +92,16 @@ namespace UndertaleModTool
         private uint[][] OldTileData { get; set; }
         public Layer.LayerTilesData TilesData { get; set; }
         public Layer.LayerTilesData PaletteTilesData { get; set; }
-        public uint PaletteColumns { get { return PaletteTilesData.TilesX; } set {
-            PaletteTilesData.TilesX = Math.Max(value, 1);
-            PaletteTilesData.Background.PaletteColumns = PaletteTilesData.TilesX;
-            PopulatePalette();
-        } }
+        public uint PaletteColumns
+        {
+            get { return PaletteTilesData.TilesX; }
+            set
+            {
+                PaletteTilesData.TilesX = Math.Max(value, 1);
+                SetPaletteColumns(PaletteTilesData.Background, PaletteTilesData.TilesX);
+                PopulatePalette();
+            }
+        }
         public double PaletteCursorX { get; set; }
         public double PaletteCursorY { get; set; }
         public double PaletteCursorWidth { get; set; }
@@ -142,7 +133,8 @@ namespace UndertaleModTool
         private Layer.LayerTilesData FocusedTilesData { get; set; }
         private TileLayerImage FocusedTilesImage { get; set; }
 
-        private enum Painting {
+        private enum Painting
+        {
             None,
             Draw,
             Erase,
@@ -163,6 +155,56 @@ namespace UndertaleModTool
 
         public string StatusText { get; set; } = "";
 
+        private static List<(WeakReference<UndertaleBackground>, uint)> PaletteColumnsMap { get; set; } = new();
+        public static uint GetPaletteColumns(UndertaleBackground background)
+        {
+            // Look through entire list, clearing out old weak references
+            uint paletteColumns = background.GMS2TileColumns;
+            for (int i = PaletteColumnsMap.Count - 1; i >= 0; i--)
+            {
+                (WeakReference<UndertaleBackground> reference, uint thisColumns) = PaletteColumnsMap[i];
+                if (reference.TryGetTarget(out UndertaleBackground thisBg))
+                {
+                    if (thisBg == background)
+                    {
+                        paletteColumns = thisColumns;
+                    }
+                }
+                else
+                {
+                    // Clear out old weak reference
+                    PaletteColumnsMap.RemoveAt(i);
+                }
+            }
+            return paletteColumns;
+        }
+        public static void SetPaletteColumns(UndertaleBackground background, uint value)
+        {
+            // Look through entire list, clearing out old weak references, and possibly set the palette columns value of this background
+            bool added = false;
+            for (int i = PaletteColumnsMap.Count - 1; i >= 0; i--)
+            {
+                (WeakReference<UndertaleBackground> reference, uint _) = PaletteColumnsMap[i];
+                if (reference.TryGetTarget(out UndertaleBackground thisBg))
+                {
+                    if (thisBg == background)
+                    {
+                        // Set the palette columns
+                        PaletteColumnsMap[i] = (reference, value);
+                        added = true;
+                    }
+                }
+                else
+                {
+                    // Clear out old weak reference
+                    PaletteColumnsMap.RemoveAt(i);
+                }
+            }
+            if (added) return;
+            // Add new entry
+            PaletteColumnsMap.Add((new WeakReference<UndertaleBackground>(background), value));
+        }
+
         public UndertaleTileEditor(Layer layer)
         {
             EditingLayer = layer;
@@ -170,11 +212,7 @@ namespace UndertaleModTool
             RoomPrevOffsetX = -EditingLayer.XOffset;
             RoomPrevOffsetY = -EditingLayer.YOffset;
 
-            OldTileData = (uint[][])EditingLayer.TilesData.TileData.Clone();
-            for (int i = 0; i < OldTileData.Length; i++)
-            {
-                OldTileData[i] = (uint[])OldTileData[i].Clone();
-            }
+            OldTileData = CloneTileData(EditingLayer.TilesData.TileData);
             TilesData = EditingLayer.TilesData;
             TileCache = new();
 
@@ -188,10 +226,7 @@ namespace UndertaleModTool
             PaletteTilesData = new Layer.LayerTilesData();
             PaletteTilesData.TileData = new uint[][] { new uint[] { 0 } };
             PaletteTilesData.Background = TilesData.Background;
-            if (PaletteTilesData.Background.PaletteColumns == 0)
-                PaletteColumns = PaletteTilesData.Background.GMS2TileColumns;
-            else
-                PaletteColumns = PaletteTilesData.Background.PaletteColumns;
+            PaletteColumns = GetPaletteColumns(PaletteTilesData.Background);
 
             EditWidth = Convert.ToDouble((long)TilesData.TilesX * (long)TilesData.Background.GMS2TileWidth);
             EditHeight = Convert.ToDouble((long)TilesData.TilesY * (long)TilesData.Background.GMS2TileHeight);
@@ -215,6 +250,8 @@ namespace UndertaleModTool
             this.DataContext = this;
             InitializeComponent();
         }
+
+        #region General events
         private void Window_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             if (!IsVisible || IsLoaded)
@@ -229,7 +266,8 @@ namespace UndertaleModTool
                 !apply && Modified && this.ShowQuestion(
                     "Cancel changes to the tilemap?", MessageBoxImage.Warning, "Confirmation"
                 ) == MessageBoxResult.No
-            ) {
+            )
+            {
                 e.Cancel = true;
                 return;
             }
@@ -239,8 +277,7 @@ namespace UndertaleModTool
             PaletteTilesData.Dispose();
             if (apply)
             {
-                // force a redraw
-                EditingLayer.TilesData.TileData = (uint[][])TilesData.TileData.Clone();
+                EditingLayer.TilesData.TileDataUpdated();
             }
             else if (Modified)
                 EditingLayer.TilesData.TileData = OldTileData;
@@ -257,7 +294,9 @@ namespace UndertaleModTool
             apply = true;
             this.Close();
         }
+        #endregion
 
+        #region Brush and tile palette
         private void PopulatePalette()
         {
             PaletteTilesData.TilesY = (uint)Convert.ToInt32(
@@ -323,15 +362,17 @@ namespace UndertaleModTool
         {
             bool over = TilesScroll is not null ? TilesScroll.IsMouseOver : false;
             BrushPreviewVisibility = (painting == Painting.None && over) ? Visibility.Visible : Visibility.Hidden;
-            BrushOutlineVisibility = 
+            BrushOutlineVisibility =
                 ((BrushEmpty && (painting == Painting.None || painting == Painting.Draw)) ||
                 painting == Painting.Erase) && over ? Visibility.Visible : Visibility.Hidden;
             BrushPickVisibility =
                 ((painting == Painting.Pick || (painting == Painting.DragPick &&
-                    PositionToTile(LastMousePos, FocusedTilesData, out int _x, out int _y)
+                    PositionToTile(LastMousePos, FocusedTilesData, out _, out _)
                 )) && FocusedTilesImage == LayerImage) ? Visibility.Visible : Visibility.Hidden;
         }
+        #endregion
 
+        #region Tile painting and picking
         // Places the current brush onto a tilemap.
         // ox and oy specify the origin point of multi-tile brushes.
         private void PaintTile(int x, int y, int ox, int oy, Layer.LayerTilesData tilesData, bool erase = false)
@@ -383,12 +424,6 @@ namespace UndertaleModTool
             uint tile = BrushTilesData.TileData[ty][tx];
             if ((tile & TILE_INDEX) != 0 || BrushEmpty)
                 SetTile(x, y, tilesData, tile);
-        }
-
-        private int mod(int left, int right)
-        {
-            int remainder = left % right;
-            return remainder < 0 ? remainder + right : remainder;
         }
 
         private void Fill(Layer.LayerTilesData tilesData, int x, int y, bool global, bool erase = false)
@@ -450,28 +485,28 @@ namespace UndertaleModTool
             int dy = -Math.Abs(y2 - y1);
             int sy = y1 < y2 ? 1 : -1;
             int error = dx + dy;
-            
+
             while (true)
             {
                 PaintTile(x1, y1, settings.BrushTiling ? ox : x1, settings.BrushTiling ? oy : y1, tilesData, erase);
-                
+
                 if (x1 == x2 && y1 == y2)
                     break;
-                
+
                 int e2 = 2 * error;
                 if (e2 >= dy)
                 {
                     if (x1 == x2)
                         break;
-                    error = error + dy;
-                    x1 = x1 + sx;
+                    error += dy;
+                    x1 += sx;
                 }
                 if (e2 <= dx)
                 {
                     if (y1 == y2)
                         break;
-                    error = error + dx;
-                    y1 = y1 + sy;
+                    error += dx;
+                    y1 += sy;
                 }
             }
         }
@@ -485,15 +520,13 @@ namespace UndertaleModTool
             y1 = Math.Clamp(y1, 0, (int)tilesData.TilesY - 1);
             x2 = Math.Clamp(x2, 0, (int)tilesData.TilesX - 1);
             y2 = Math.Clamp(y2, 0, (int)tilesData.TilesY - 1);
-            if (x2 < x1) {
-                int _x1 = x1;
-                x1 = x2;
-                x2 = _x1;
+            if (x2 < x1)
+            {
+                (x1, x2) = (x2, x1);
             }
-            if (y2 < y1) {
-                int _y1 = y1;
-                y1 = y2;
-                y2 = _y1;
+            if (y2 < y1)
+            {
+                (y1, y2) = (y2, y1);
             }
 
             BrushTilesData.TilesX = (uint)(Math.Abs(x2 - x1) + 1);
@@ -508,7 +541,6 @@ namespace UndertaleModTool
             }
 
             UpdateBrush();
-            
             if (tilesData == PaletteTilesData)
             {
                 MovePaletteCursor(x1, y1);
@@ -525,7 +557,6 @@ namespace UndertaleModTool
                 return;
             }
             PaletteCursorVisibility = Visibility.Visible;
-            
             uint brushTile = BrushTilesData.TileData[0][0] & TILE_INDEX;
             int index = PaletteTilesData.Background.GMS2TileIds.FindIndex(
                 id => id.ID == brushTile
@@ -579,7 +610,7 @@ namespace UndertaleModTool
             }
             else if (FocusedTilesScroll == PaletteScroll)
             {
-                if (PositionToTile(DrawingStart, FocusedTilesData, out int _x, out int _y))
+                if (PositionToTile(DrawingStart, FocusedTilesData, out _, out _))
                 {
                     painting = Painting.Pick;
                     Pick(DrawingStart, DrawingStart, FocusedTilesData);
@@ -608,7 +639,7 @@ namespace UndertaleModTool
             {
                 if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
                 {
-                    if (PositionToTile(DrawingStart, FocusedTilesData, out int _x, out int _y))
+                    if (PositionToTile(DrawingStart, FocusedTilesData, out _, out _))
                     {
                         Pick(DrawingStart, DrawingStart, FocusedTilesData);
                         painting = Painting.Pick;
@@ -766,12 +797,13 @@ namespace UndertaleModTool
                 e.Handled = true;
             }
         }
+        #endregion
 
+        #region Tile drawing
         private void DrawTilemap(Layer.LayerTilesData tilesData, WriteableBitmap wBitmap)
         {
             if ((loader.Convert(new object[] { tilesData }, null, "cache", null) as string) == "Error")
                 return;
-            
             for (int y = 0; y < tilesData.TilesY; y++)
             {
                 for (int x = 0; x < tilesData.TilesX; x++)
@@ -801,11 +833,11 @@ namespace UndertaleModTool
 
             if ((tile & TILE_FLAGS) == 0)
             {
-                if (TileCache.ContainsKey(tileID))
+                if (TileCache.TryGetValue(tileID, out byte[] tileBytes))
                 {
                     wBitmap.WritePixels(
-                        new Int32Rect(0, 0, (int)tileset.GMS2TileWidth, (int)tileset.GMS2TileHeight), 
-                        TileCache[tileID], (int)tileset.GMS2TileWidth * 4,
+                        new Int32Rect(0, 0, (int)tileset.GMS2TileWidth, (int)tileset.GMS2TileHeight),
+                        tileBytes, (int)tileset.GMS2TileWidth * 4,
                         (int)(x * tileset.GMS2TileWidth), (int)(y * tileset.GMS2TileHeight)
                     );
                     return;
@@ -818,7 +850,7 @@ namespace UndertaleModTool
                 return;
             }
 
-            System.Drawing.Bitmap newBMP = (System.Drawing.Bitmap)tileBMP.Clone();
+            using System.Drawing.Bitmap newBMP = (System.Drawing.Bitmap)tileBMP.Clone();
 
             switch (tile >> 28)
             {
@@ -852,13 +884,10 @@ namespace UndertaleModTool
                 newBMP, wBitmap,
                 (int)(x * tileset.GMS2TileWidth), (int)(y * tileset.GMS2TileHeight)
             );
-
-            newBMP.Dispose();
         }
         private void DrawBitmapToWBitmap(System.Drawing.Bitmap bitmap, WriteableBitmap wBitmap, int x, int y, uint? cache = null)
         {
             byte[] arr = (byte[])Array.CreateInstance(typeof(byte), bitmap.Width * bitmap.Height * 4);
-            
             int i = 0;
             for (int by = 0; by < bitmap.Height; by++)
             {
@@ -878,22 +907,15 @@ namespace UndertaleModTool
             {
                 TileCache.TryAdd(cacheID, arr);
             }
-            
             wBitmap.WritePixels(new Int32Rect(0, 0, bitmap.Width, bitmap.Height), arr, bitmap.Width * 4, x, y);
         }
         private void ClearToWBitmap(WriteableBitmap wBitmap, int x, int y, int width, int height)
         {
             wBitmap.WritePixels(new Int32Rect(0, 0, width, height), emptyTile, width * 4, x, y);
         }
+        #endregion
 
-        private uint[][] CloneTileData(uint[][] tileData)
-        {
-            uint[][] newTileData = (uint[][])tileData.Clone();
-            for (int i = 0; i < tileData.Length; i++)
-                newTileData[i] = (uint[])tileData[i].Clone();
-            return newTileData;
-        }
-
+        #region Commands
         private void Command_Mirror(object sender, RoutedEventArgs e)
         {
             for (int y = 0; y < BrushTilesData.TilesY; y++)
@@ -1028,12 +1050,27 @@ namespace UndertaleModTool
                 data[kvp.Key] = oldTile;
             }
         }
+        #endregion
+
+        #region Utilities
+        private int mod(int left, int right)
+        {
+            int remainder = left % right;
+            return remainder < 0 ? remainder + right : remainder;
+        }
+
+        private uint[][] CloneTileData(uint[][] tileData)
+        {
+            uint[][] newTileData = (uint[][])tileData.Clone();
+            for (int i = 0; i < tileData.Length; i++)
+                newTileData[i] = (uint[])tileData[i].Clone();
+            return newTileData;
+        }
 
         private bool PositionToTile(Point p, Layer.LayerTilesData tilesData, out int x, out int y)
         {
             x = Convert.ToInt32(Math.Floor(p.X / tilesData.Background.GMS2TileWidth));
             y = Convert.ToInt32(Math.Floor(p.Y / tilesData.Background.GMS2TileHeight));
-            
             return TileInBounds(x, y, tilesData);
         }
 
@@ -1043,5 +1080,8 @@ namespace UndertaleModTool
             if (x >= tilesData.TilesX || y >= tilesData.TilesY) return false;
             return true;
         }
+        #endregion
     }
 }
+
+#pragma warning restore CA1416 // Validate platform compatibility
