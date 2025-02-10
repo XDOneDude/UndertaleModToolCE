@@ -69,18 +69,24 @@ namespace UndertaleModTool
                 new FrameworkPropertyMetadata(true,
                     FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
-        public static DependencyProperty ObjectEventActionProperty =
-            DependencyProperty.Register("ObjectEventAction", typeof(UndertaleGameObject.EventAction),
-                typeof(UndertaleObjectReference),
-                new FrameworkPropertyMetadata(null,
-                    FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
-
         public static DependencyProperty CanChangeProperty =
             DependencyProperty.Register("CanChange", typeof(bool),
                 typeof(UndertaleObjectReference),
                 new FrameworkPropertyMetadata(true,
                     FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+        public static DependencyProperty ObjectEventActionProperty =
+            DependencyProperty.Register("ObjectEventAction", typeof(UndertaleGameObject.EventAction),
+                typeof(UndertaleObjectReference),
+                new FrameworkPropertyMetadata(null,
+                    FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 				
+
+        public static readonly DependencyProperty GameObjectProperty =
+            DependencyProperty.Register("GameObject", typeof(UndertaleGameObject),
+                typeof(UndertaleObjectReference),
+                new PropertyMetadata(null));
+
         public static DependencyProperty ObjectEventTypeProperty =
             DependencyProperty.Register("ObjectEventType", typeof(EventType),
                 typeof(UndertaleObjectReference),
@@ -93,6 +99,15 @@ namespace UndertaleModTool
                 new FrameworkPropertyMetadata((uint)0,
                     FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
+        public static readonly DependencyProperty RoomProperty =
+            DependencyProperty.Register("Room", typeof(UndertaleRoom),
+                typeof(UndertaleObjectReference),
+                new PropertyMetadata(null));
+
+        public static readonly DependencyProperty RoomGameObjectProperty =
+           DependencyProperty.Register("RoomGameObject", typeof(UndertaleRoom.GameObject),
+               typeof(UndertaleObjectReference),
+               new PropertyMetadata(null));
 
         public object ObjectReference
         {
@@ -124,6 +139,12 @@ namespace UndertaleModTool
             set { SetValue(ObjectEventActionProperty, value); }
         }
 
+        public UndertaleGameObject GameObject
+        {
+            get { return (UndertaleGameObject)GetValue(GameObjectProperty); }
+            set { SetValue(GameObjectProperty, value); }
+        }
+
         public EventType ObjectEventType
         {
             get { return (EventType)GetValue(ObjectEventTypeProperty); }
@@ -136,6 +157,19 @@ namespace UndertaleModTool
             set { SetValue(ObjectEventSubtypeProperty, value); }
         }
 
+        public UndertaleRoom Room
+        {
+            get { return (UndertaleRoom)GetValue(RoomProperty); }
+            set { SetValue(RoomProperty, value); }
+        }
+
+        public UndertaleRoom.GameObject RoomGameObject
+        {
+            get { return (UndertaleRoom.GameObject)GetValue(RoomGameObjectProperty); }
+            set { SetValue(RoomGameObjectProperty, value); }
+        }
+
+        public bool IsPreCreate { get; set; } = false;
 
         public UndertaleObjectReference()
         {
@@ -178,17 +212,44 @@ namespace UndertaleModTool
         {
             if (ObjectReference is null)
             {
-                if (mainWindow.Selected is null)
+                if (GameObject is not null)
                 {
-                    mainWindow.ShowError("Nothing currently selected! This is currently unsupported.");
-                    return;
+                    ObjectReference = GameObject.EventHandlerFor(ObjectEventType, ObjectEventSubtype, mainWindow.Data);
                 }
-                else if (mainWindow.Selected is UndertaleGameObject gameObject)
+                else if (Room is not null)
                 {
-                    // Generate the code entry
-                    UndertaleCode code = gameObject.EventHandlerFor(ObjectEventType, ObjectEventSubtype, mainWindow.Data.Strings, mainWindow.Data.Code, mainWindow.Data.CodeLocals, ObjectEventAction);
+                    if (RoomGameObject is null)
+                    {
+                        // Generate base name
+                        string name = "gml_Room_" + Room.Name.Content + "_Create";
 
-                    ObjectReference = code;
+                        // If code already exists, use it (otherwise create new code)
+                        if (mainWindow.Data.Code.ByName(name) is UndertaleCode existing)
+                        {
+                            mainWindow.ShowWarning("Code entry for room already exists; reusing it.");
+                            ObjectReference = existing;
+                        }
+                        else
+                        {
+                            ObjectReference = CreateCode(mainWindow.Data, name);
+                        }
+                    }
+                    else
+                    {
+                        // Generate base name
+                        string beginning = "gml_RoomCC_" + Room.Name.Content + "_" + RoomGameObject.InstanceID.ToString();
+                        string suffix = !IsPreCreate ? "_Create" : "_PreCreate";
+                        string name = beginning + suffix;
+
+                        // Ensure no duplicate names (in case instance IDs change)
+                        int i = 0;
+                        while (mainWindow.Data.Code.ByName(name) is not null)
+                        {
+                            name = beginning + "_" + (i++).ToString() + suffix;
+                        }
+
+                        ObjectReference = CreateCode(mainWindow.Data, name);
+                    }
                 }
 
                 else if (mainWindow.Selected is UndertaleRoom roomWindow)
@@ -232,14 +293,47 @@ namespace UndertaleModTool
 
                 else
                 {
-                    mainWindow.ShowError("Adding to non-objects is currently unsupported.");
-                    return;
+                    mainWindow.ShowError("Adding not supported in this situation.");
                 }
             }
             else
             {
                 mainWindow.ChangeSelection(ObjectReference);
             }
+        }
+
+        // TODO: move this to the models
+        static UndertaleCode CreateCode(UndertaleData data, string name)
+        {
+            UndertaleString nameString = data.Strings.MakeString(name);
+
+            UndertaleCode code = new()
+            {
+                LocalsCount = 1,
+                Name = nameString
+            };
+
+            data.Code.Add(code);
+
+            if (data.CodeLocals is not null)
+            {
+                UndertaleCodeLocals.LocalVar argsLocal = new()
+                {
+                    Name = data.Strings.MakeString("arguments"),
+                    Index = 0
+                };
+
+                UndertaleCodeLocals locals = new()
+                {
+                    Name = nameString
+                };
+
+                locals.Locals.Add(argsLocal);
+
+                data.CodeLocals.Add(locals);
+            }
+
+            return code;
         }
 
         private void Details_MouseDown(object sender, MouseButtonEventArgs e)
