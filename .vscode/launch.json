@@ -5,21 +5,11 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": ".NET Core Launch (console)",
-			"type": "coreclr",
+			"name": "C#: UndertaleModTool",
+			"type": "dotnet",
 			"request": "launch",
-			"preLaunchTask": "build",
-			"program": "${workspaceFolder}/UndertaleModTool/bin/Debug/net8.0-windows/UndertaleModTool.dll",
-			"args": [],
-			"cwd": "${workspaceFolder}/UndertaleModTool",
-			"console": "internalConsole",
-			"requireExactSource": false,
-			"stopAtEntry": false
-		},
-		{
-			"name": ".NET Core Attach",
-			"type": "coreclr",
-			"request": "attach"
+			"projectPath": "${workspaceFolder}\\UndertaleModTool\\UndertaleModTool.csproj",
+			"launchConfigurationId": "TargetFramework=;UndertaleModTool"
 		}
 	]
 }
