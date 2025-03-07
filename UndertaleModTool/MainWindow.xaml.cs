@@ -205,7 +205,7 @@ namespace UndertaleModTool
         public static string Edition = "(Git: " + GitVersion.GetGitVersion().Substring(0, 7) + ")";
 
         // i don't wanna change the assembly versions that reflect the utmt version
-        public static string CEVersion = "0.6.0";
+        public static string CEVersion = "0.7.0";
 
         // On debug, build with git versions and provided release version. Otherwise, use the provided release version only.
 //#if DEBUG
