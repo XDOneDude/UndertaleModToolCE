@@ -138,7 +138,7 @@ namespace UndertaleModTool
             }
             catch (Exception exc)
             {
-                this.ShowError("CrashCheck error! Send this to Grossley#2869 and make an issue on Github\n" + exc);
+                this.ShowError("CrashCheck error! Send this to Grossley#2869 and make an issue on GitHub\n" + exc);
             }
         }
 
@@ -155,7 +155,7 @@ namespace UndertaleModTool
             }
             catch (Exception exc)
             {
-                this.ShowError("ApplyCorrections error! Send this to Grossley#2869 and make an issue on Github\n" + exc);
+                this.ShowError("ApplyCorrections error! Send this to Grossley#2869 and make an issue on GitHub\n" + exc);
             }
         }
 
@@ -172,7 +172,7 @@ namespace UndertaleModTool
             }
             catch (Exception exc)
             {
-                this.ShowError("CreateUMTLastEdited error! Send this to Grossley#2869 and make an issue on Github\n" + exc);
+                this.ShowError("CreateUMTLastEdited error! Send this to Grossley#2869 and make an issue on GitHub\n" + exc);
             }
         }
 
@@ -191,7 +191,7 @@ namespace UndertaleModTool
             }
             catch (Exception exc)
             {
-                this.ShowError("DestroyUMTLastEdited error! Send this to Grossley#2869 and make an issue on Github\n" + exc);
+                this.ShowError("DestroyUMTLastEdited error! Send this to Grossley#2869 and make an issue on GitHub\n" + exc);
             }
         }
 
@@ -213,7 +213,7 @@ namespace UndertaleModTool
             }
             catch (Exception exc)
             {
-                this.ShowError("RevertProfile error! Send this to Grossley#2869 and make an issue on Github\n" + exc);
+                this.ShowError("RevertProfile error! Send this to Grossley#2869 and make an issue on GitHub\n" + exc);
             }
         }
         public async Task UpdateProfile(UndertaleData data, string filename)
@@ -311,7 +311,7 @@ an issue on GitHub.");
             }
             catch (Exception exc)
             {
-                this.ShowError("UpdateProfile error! Send this to Grossley#2869 and make an issue on Github\n" + exc);
+                this.ShowError("UpdateProfile error! Send this to Grossley#2869 and make an issue on GitHub\n" + exc);
             }
         }
         public async Task ProfileSaveEvent(UndertaleData data, string filename)
@@ -387,7 +387,7 @@ an issue on GitHub.");
             }
             catch (Exception exc)
             {
-                this.ShowError("ProfileSaveEvent error! Send this to Grossley#2869 and make an issue on Github\n" + exc);
+                this.ShowError("ProfileSaveEvent error! Send this to Grossley#2869 and make an issue on GitHub\n" + exc);
             }
         }
         public void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
@@ -399,7 +399,13 @@ an issue on GitHub.");
 
                 if (!dir.Exists)
                 {
+#if DEBUG
+                // Error is annoying during development
+                Console.WriteLine("Source directory does not exist or could not be found: " + sourceDirName);
+                return;
+#else
                     throw new DirectoryNotFoundException("Source directory does not exist or could not be found: " + sourceDirName);
+#endif
                 }
 
                 DirectoryInfo[] dirs = dir.GetDirectories();
@@ -438,7 +444,7 @@ an issue on GitHub.");
             }
             catch (Exception exc)
             {
-                this.ShowError("DirectoryCopy error! Send this to Grossley#2869 and make an issue on Github\n" + exc);
+                this.ShowError("DirectoryCopy error! Send this to Grossley#2869 and make an issue on GitHub\n" + exc);
             }
         }
     }

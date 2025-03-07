@@ -687,6 +687,12 @@ public class UndertaleInstruction : UndertaleObject, IGMInstruction
                 DataType type1 = (DataType)(b2 & 0xf);
                 DataType type2 = (DataType)(b2 >> 4);
 
+                // Fix data.wins affected by a bug in UTMTCE 0.4.0 where self calls
+                // triggered a "Second type should be 0" error
+                if (kind == Opcode.CallV && type2 != 0) {
+                    type2 = 0;
+                }
+
                 // Ensure basic conditions hold
                 if (extra != 0 && kind != Opcode.Dup && kind != Opcode.CallV)
                 {

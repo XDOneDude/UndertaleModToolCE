@@ -541,7 +541,6 @@ namespace UndertaleModTool
             }
 
             UpdateBrush();
-
             if (tilesData == PaletteTilesData)
             {
                 MovePaletteCursor(x1, y1);
@@ -558,7 +557,6 @@ namespace UndertaleModTool
                 return;
             }
             PaletteCursorVisibility = Visibility.Visible;
-
             uint brushTile = BrushTilesData.TileData[0][0] & TILE_INDEX;
             int index = PaletteTilesData.Background.GMS2TileIds.FindIndex(
                 id => id.ID == brushTile
@@ -806,7 +804,6 @@ namespace UndertaleModTool
         {
             if ((loader.Convert(new object[] { tilesData }, null, "cache", null) as string) == "Error")
                 return;
-
             for (int y = 0; y < tilesData.TilesY; y++)
             {
                 for (int x = 0; x < tilesData.TilesX; x++)
@@ -891,7 +888,6 @@ namespace UndertaleModTool
         private void DrawBitmapToWBitmap(System.Drawing.Bitmap bitmap, WriteableBitmap wBitmap, int x, int y, uint? cache = null)
         {
             byte[] arr = (byte[])Array.CreateInstance(typeof(byte), bitmap.Width * bitmap.Height * 4);
-
             int i = 0;
             for (int by = 0; by < bitmap.Height; by++)
             {
@@ -911,7 +907,6 @@ namespace UndertaleModTool
             {
                 TileCache.TryAdd(cacheID, arr);
             }
-
             wBitmap.WritePixels(new Int32Rect(0, 0, bitmap.Width, bitmap.Height), arr, bitmap.Width * 4, x, y);
         }
         private void ClearToWBitmap(WriteableBitmap wBitmap, int x, int y, int width, int height)
@@ -1076,7 +1071,6 @@ namespace UndertaleModTool
         {
             x = Convert.ToInt32(Math.Floor(p.X / tilesData.Background.GMS2TileWidth));
             y = Convert.ToInt32(Math.Floor(p.Y / tilesData.Background.GMS2TileHeight));
-
             return TileInBounds(x, y, tilesData);
         }
 

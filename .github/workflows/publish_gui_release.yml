@@ -16,7 +16,7 @@ jobs:
         os: [windows-latest]
         configuration: [Release]
         bundled: [true]
-        singlefile: [true, false]
+        singlefile: [true]
 
     runs-on: ${{ matrix.os }}
 
@@ -33,21 +33,20 @@ jobs:
     - name: Build
       run: |
         dotnet build UndertaleModTool --no-restore
-    - name: Publish ${{ matrix.os }} GUI
+      #  dotnet build UndertaleModToolUpdater --no-restore
+    - name: Publish ${{ matrix.os }} GUI 32Bit
       run: |
-        dotnet publish UndertaleModTool -c ${{ matrix.configuration }} -r win-x64 --self-contained ${{ matrix.bundled }} -p:PublishSingleFile=${{ matrix.singlefile }} --output ${{ matrix.os }}
+        dotnet publish UndertaleModTool -c ${{ matrix.configuration }} -r win-x86 --self-contained ${{ matrix.bundled }} -p:PublishSingleFile=${{ matrix.singlefile }} --output ${{ matrix.os }}
+      #  dotnet publish UndertaleModToolUpdater -c ${{ matrix.configuration }} -r win-x86 --self-contained ${{ matrix.bundled }} -p:PublishSingleFile=false --output ${{ matrix.os }}/Updater
     - name: Copy external files
       run: |
         cp ./README.md ./${{ matrix.os }}
         cp ./SCRIPTS.md ./${{ matrix.os }}
         cp ./LICENSE.txt ./${{ matrix.os }}
         cp -r ./UndertaleModLib/GameSpecificData/ ./${{ matrix.os }}/GameSpecificData/
-    - name: Create zip for stable release Windows GUI
-      run: |
-        7z a -tzip GUI-${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}-isSingleFile-${{ matrix.singlefile }}.zip ./${{ matrix.os }}/* -mx0 
-    - name: Upload artifact
+        cp ./.disable_gb1click ./${{ matrix.os }}
+    - name: Upload ${{ matrix.os }} GUI 32Bit
       uses: actions/upload-artifact@v4
       with:
-          name: GUI-${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}-isSingleFile-${{ matrix.singlefile }}
-          path: GUI-${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}-isSingleFile-${{ matrix.singlefile }}.zip
-
+        name: UTMTCE-GUI32BIT-${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}-isSingleFile-${{ matrix.singlefile }}
+        path: ${{ matrix.os }}

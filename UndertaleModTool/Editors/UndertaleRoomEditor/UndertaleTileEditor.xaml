@@ -65,14 +65,12 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-
             <Grid Grid.Row="0" Grid.Column="0" Margin="0,0,8,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
                     <local:ButtonDark
                         Margin="3,1" Padding="3,2" VerticalAlignment="Center"
@@ -393,6 +391,5 @@ Persists when the tile editor is closed, but not when the file is saved and reop
                 VerticalAlignment="Center" Content="Apply" Click="ApplyButton_Click"
             ></local:ButtonDark>
         </Grid>
-
     </Grid>
 </Window>

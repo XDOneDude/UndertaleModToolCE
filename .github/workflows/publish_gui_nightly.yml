@@ -1,8 +1,8 @@
 name: Publish continuous release of UndertaleModTool
 
 on:
-  push:
-    branches: [ master ]
+  #push:
+  #  branches: [ master ]
   workflow_dispatch:
 
 concurrency:
@@ -46,14 +46,15 @@ jobs:
         cp ./SCRIPTS.md ./${{ matrix.os }}
         cp ./LICENSE.txt ./${{ matrix.os }}
         cp -r ./UndertaleModLib/GameSpecificData/ ./${{ matrix.os }}/GameSpecificData/
+        cp ./.disable_gb1click ./${{ matrix.os }}
     - name: Create zip for nightly release Windows GUI
       run: |
         7z a -tzip GUI-${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}-isSingleFile-${{ matrix.singlefile }}.zip ./${{ matrix.os }}/* -mx0 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-          name: GUI-${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}-isSingleFile-${{ matrix.singlefile }}
-          path: GUI-${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}-isSingleFile-${{ matrix.singlefile }}.zip
+          name: GUI-UTMTCE${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}-isSingleFile-${{ matrix.singlefile }}
+          path: GUI-UTMTCE${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}-isSingleFile-${{ matrix.singlefile }}.zip
 
   build_cli:
 
@@ -98,8 +99,8 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-          name: CLI-${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}
-          path: CLI-${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}.zip
+          name: CLI-UTMTCE${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}
+          path: CLI-UTMTCE${{ matrix.os }}-${{ matrix.configuration }}-isBundled-${{ matrix.bundled }}.zip
 
   upload:
 
@@ -136,7 +137,7 @@ jobs:
           await new Promise(r => setTimeout(r, 10000));
 
           const {owner, repo} = context.repo;
-          const listReleasesResponse = await github.rest.repos.listReleases({
+          const listReleasesResponse = await github.repos.listReleases({
             owner,
             repo
           });
@@ -166,7 +167,7 @@ jobs:
           console.warn("Found the bleeding edge release that is draft.\nTrying to publish...");
 
           try {
-            await github.rest.repos.updateRelease({owner, repo, release_id, draft: false});
+            await github.repos.updateRelease({owner, repo, release_id, draft: false});
           }
           catch (err) {
             if ('status' in err && err.status == 422) {

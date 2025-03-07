@@ -46,21 +46,36 @@ namespace UndertaleModTool
         private void Import_Click(object sender, RoutedEventArgs e)
         {
             UndertaleEmbeddedAudio target = DataContext as UndertaleEmbeddedAudio;
+            bool isWav = target.Data[0] == 'R' && target.Data[1] == 'I' && target.Data[2] == 'F' && target.Data[3] == 'F';
+            bool isOgg = target.Data[0] == 'O' && target.Data[1] == 'g' && target.Data[2] == 'g' && target.Data[3] == 'S';
 
             OpenFileDialog dlg = new OpenFileDialog();
 
-            dlg.DefaultExt = ".wav";
-            dlg.Filter = "WAV files (.wav)|*.wav|All files|*";
+            if (isWav) {
+                dlg.DefaultExt = ".wav";
+                dlg.Filter = "WAV files|*.wav|All files|*";
+            } else if (isOgg) {
+                dlg.DefaultExt = ".ogg";
+                dlg.Filter = "OGG files|*.ogg|All files|*";
+            } else {
+                dlg.DefaultExt = "";
+                dlg.Filter = "All files|*";
+            }
 
             if (dlg.ShowDialog() == true)
             {
                 try
                 {
                     byte[] data = File.ReadAllBytes(dlg.FileName);
-
-                    // TODO: Make sure it's valid WAV
-
-                    target.Data = data;
+                    bool dataIsWav = data[0] == 'R' && data[1] == 'I' && data[2] == 'F' && data[3] == 'F';
+                    bool dataIsOgg = data[0] == 'O' && data[1] == 'g' && data[2] == 'g' && data[3] == 'S';
+                    if (!dataIsWav && !dataIsOgg) {
+                        mainWindow.ShowError("Failed to import file!\r\nNot a WAV or OGG.", "Failed to import file");
+                    }
+                    else if ((isWav && dataIsOgg) || (isOgg && dataIsWav)) {
+                        mainWindow.ShowError("Failed to import file!\r\nFormat doesn't match the original file.", "Failed to import file");
+                    } else
+                        target.Data = data;
                 }
                 catch (Exception ex)
                 {
@@ -72,11 +87,20 @@ namespace UndertaleModTool
         private void Export_Click(object sender, RoutedEventArgs e)
         {
             UndertaleEmbeddedAudio target = DataContext as UndertaleEmbeddedAudio;
+            bool isWav = target.Data[0] == 'R' && target.Data[1] == 'I' && target.Data[2] == 'F' && target.Data[3] == 'F';
+            bool isOgg = target.Data[0] == 'O' && target.Data[1] == 'g' && target.Data[2] == 'g' && target.Data[3] == 'S';
 
             SaveFileDialog dlg = new SaveFileDialog();
-
-            dlg.DefaultExt = ".wav";
-            dlg.Filter = "WAV files (.wav)|*.wav|All files|*";
+            if (isWav) {
+                dlg.DefaultExt = ".wav";
+                dlg.Filter = "WAV files|*.wav|All files|*";
+            } else if (isOgg) {
+                dlg.DefaultExt = ".ogg";
+                dlg.Filter = "OGG files|*.ogg|All files|*";
+            } else {
+                dlg.DefaultExt = "";
+                dlg.Filter = "All files|*";
+            }
 
             if (dlg.ShowDialog() == true)
             {
@@ -102,19 +126,21 @@ namespace UndertaleModTool
         private void Play_Click(object sender, RoutedEventArgs e)
         {
             UndertaleEmbeddedAudio target = DataContext as UndertaleEmbeddedAudio;
+            bool isWav = target.Data[0] == 'R' && target.Data[1] == 'I' && target.Data[2] == 'F' && target.Data[3] == 'F';
+            bool isOgg = target.Data[0] == 'O' && target.Data[1] == 'g' && target.Data[2] == 'g' && target.Data[3] == 'S';
 
             if (target.Data.Length > 4)
             {
                 try
                 {
-                    if (target.Data[0] == 'R' && target.Data[1] == 'I' && target.Data[2] == 'F' && target.Data[3] == 'F')
+                    if (isWav)
                     {
                         wavReader = new WaveFileReader(new MemoryStream(target.Data));
                         InitAudio();
                         waveOut.Init(wavReader);
                         waveOut.Play();
                     }
-                    else if (target.Data[0] == 'O' && target.Data[1] == 'g' && target.Data[2] == 'g' && target.Data[3] == 'S')
+                    else if (isOgg)
                     {
                         oggReader = new VorbisWaveReader(new MemoryStream(target.Data));
                         InitAudio();

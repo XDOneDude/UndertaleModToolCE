@@ -56,11 +56,13 @@
     <UserControl.CommandBindings>
         <CommandBinding Command="Copy" Executed="Command_Copy" />
         <CommandBinding Command="Paste" Executed="Command_Paste" />
+        <CommandBinding Command="{x:Static local:UndertaleRoomEditor.PasteShiftCommand}" Executed="Command_PasteShift" />
         <CommandBinding Command="Undo" Executed="Command_Undo" />
     </UserControl.CommandBindings>
     <UserControl.InputBindings>
         <KeyBinding Modifiers="Control" Key="C" Command="Copy"/>
         <KeyBinding Modifiers="Control" Key="P" Command="Paste"/>
+        <KeyBinding Modifiers="Control+Shift" Key="V" Command="{x:Static local:UndertaleRoomEditor.PasteShiftCommand}"/>
         <KeyBinding Modifiers="Control" Key="Z" Command="Undo"/>
     </UserControl.InputBindings>
 
@@ -72,10 +74,9 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="342px"/>
+            <RowDefinition Height="250px"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid Grid.Column="0" Grid.Row="0" Margin="0,0,0,8">
             <Grid.ColumnDefinitions>
@@ -396,6 +397,7 @@
                                 <RowDefinition Height="Auto" SharedSizeGroup="s22"/>
                                 <RowDefinition Height="Auto" SharedSizeGroup="s22"/>
                                 <RowDefinition Height="Auto" SharedSizeGroup="s22"/>
+                                <RowDefinition Height="Auto" SharedSizeGroup="s22"/>
                             </Grid.RowDefinitions>
                             <Grid.Resources>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource Centered}"/>
@@ -476,6 +478,8 @@
 
                             <TextBlock Grid.Row="14" Grid.Column="0" Margin="3">Grid Thickness</TextBlock>
                             <local:TextBoxDark Grid.Row="14" Grid.Column="2" Margin="3" Text="{Binding GridThicknessPx}"/>
+                            
+                            <local:ButtonDark Grid.Row="15" Grid.Column="0" Grid.ColumnSpan="3" Margin="3" Content="Save as PNG" Click="ExportAsPNG_Click"/>
                         </Grid>
                     </DataTemplate>
 
@@ -1160,7 +1164,7 @@
         <GridSplitter Grid.Column="0" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Center" ShowsPreview="True" Width="Auto" Height="3"/>
 
         <!-- Don't forget to modify "UndertaleRoomRenderer" control as well -->
-        <ScrollViewer Name="RoomGraphicsScroll" Margin="0,8,0,0" Grid.Column="0" Grid.Row="2" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" ScrollChanged="ScrollViewer_ScrollChanged">
+        <ScrollViewer Name="RoomGraphicsScroll" Margin="0,8,0,0" Grid.Column="0" Grid.Row="2" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" ScrollChanged="ScrollViewer_ScrollChanged" MouseUp="RoomGraphicsScroll_MouseUp" MouseDown="RoomGraphicsScroll_MouseDown" MouseMove="RoomGraphicsScroll_MouseMove" Loaded="RoomGraphicsScroll_Loaded" MouseLeave="RoomGraphicsScroll_MouseLeave">
             <ItemsControl Name="RoomGraphics" Background="Gray" MouseDown="RectangleBackground_MouseDown" MouseMove="RectangleBackground_MouseMove" MouseUp="RectangleBackground_MouseUp" MouseWheel="Canvas_MouseWheel">
                 <ItemsControl.Style>
                     <Style TargetType="ItemsControl">
@@ -1569,6 +1573,5 @@
                 </ItemsControl.Resources>
             </ItemsControl>
         </ScrollViewer>
-        <local:ButtonDark Grid.Column="0" Grid.Row="3" Content="Save as PNG" Click="ExportAsPNG_Click"/>
     </Grid>
 </local:DataUserControl>

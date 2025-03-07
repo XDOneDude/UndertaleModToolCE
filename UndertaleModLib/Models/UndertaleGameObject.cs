@@ -285,11 +285,6 @@ public class UndertaleGameObject : UndertaleNamedResource, INotifyPropertyChange
         if (subtypeObj == null)
             Events[(int)type].Add(subtypeObj = new Event() { EventSubtype = subtype });
         EventAction action = subtypeObj.Actions.FirstOrDefault();
-        if (action == null)
-        {
-            subtypeObj.Actions.Add(action = new EventAction());
-            action.ActionName = data.Strings.MakeString("");
-        }
         UndertaleCode code = action.CodeId;
         if (code == null)
         {

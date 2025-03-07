@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Underanalyzer.Compiler;
 using UndertaleModLib.Models;
@@ -629,6 +629,8 @@ public class BuiltinList : IBuiltins
         DefineFunction("http_request", 4);
         DefineFunction("json_encode", 1);
         DefineFunction("json_decode", 1);
+        DefineFunction("json_parse", 1);
+        DefineFunction("json_stringify", 1);
         DefineFunction("zip_unzip", 2);
         DefineFunction("load_csv", 1);
         DefineFunction("move_random", 2);
@@ -1164,6 +1166,11 @@ public class BuiltinList : IBuiltins
         DefineFunction("variable_instance_get", 2);
         DefineFunction("variable_instance_set", 3);
         DefineFunction("variable_instance_get_names", 1);
+        DefineFunction("variable_struct_exists", 2);
+        DefineFunction("variable_struct_get", 2);
+        DefineFunction("variable_struct_set", 3);
+        DefineFunction("variable_struct_remove", 2);
+        DefineFunction("variable_struct_get_names", 1);
         DefineFunction("random", 1);
         DefineFunction("random_range", 2);
         DefineFunction("irandom", 1);
@@ -1503,8 +1510,8 @@ public class BuiltinList : IBuiltins
         DefineFunction("audio_emitter_velocity", 4);
         DefineFunction("audio_emitter_falloff", 4);
         DefineFunction("audio_emitter_gain", 2);
-        DefineFunction("audio_play_sound", 3);
-        DefineFunction("audio_play_sound_on", 4);
+        DefineFunction("audio_play_sound", -1);
+        DefineFunction("audio_play_sound_on", -1);
         DefineFunction("audio_play_sound_at", 9);
         DefineFunction("audio_stop_sound", 1);
         DefineFunction("audio_resume_sound", 1);
@@ -2126,6 +2133,7 @@ public class BuiltinList : IBuiltins
         DefineFunction("buffer_resize", 2);
         DefineFunction("buffer_md5", 3);
         DefineFunction("buffer_sha1", 3);
+        DefineFunction("buffer_crc32", 3);
         DefineFunction("buffer_base64_encode", 3);
         DefineFunction("buffer_base64_decode", 1);
         DefineFunction("buffer_base64_decode_ext", 3);

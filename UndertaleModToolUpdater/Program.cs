@@ -10,7 +10,7 @@ namespace UndertaleModToolUpdater
     {
         static void Main(string[] args)
         {
-            Console.Title = "UndertaleModTool updater";
+            Console.Title = "UndertaleModTool Community Edition updater";
 
             // Get all processes named UndertaleModTool
             Process[] utmtInstances = Process.GetProcessesByName("UndertaleModTool");
@@ -18,7 +18,7 @@ namespace UndertaleModToolUpdater
             if (utmtInstances.Length > 0)
             {
                 // Found some! Wait for all of them to close
-                Console.WriteLine("Waiting for UndertaleModTool to close...");
+                Console.WriteLine("Waiting for UTMTCE to close...");
                 foreach (var instance in utmtInstances)
                 {
                     instance.WaitForExit();
@@ -30,7 +30,7 @@ namespace UndertaleModToolUpdater
 
             // Check if Update.zip actually exists
             if (!File.Exists(basePath + "Update.zip")) {
-                Console.WriteLine("Update.zip is missing! This program is not meant to be ran by itself, please update through UndertaleModTool.");
+                Console.WriteLine("Update.zip is missing! This program is not meant to be ran by itself, please update through UTMTCE.");
                 Console.WriteLine("Press any key to exit...");
                 Console.Read();
                 Environment.Exit(1);
