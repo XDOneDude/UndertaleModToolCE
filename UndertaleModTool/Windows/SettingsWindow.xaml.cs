@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -63,34 +64,6 @@ namespace UndertaleModTool
             }
         }
 
-        public static bool UseGMLCache
-        {
-            get => Settings.Instance.UseGMLCache;
-            set
-            {
-                Settings.Instance.UseGMLCache = value;
-                Settings.Save();
-            }
-        }
-        public static bool PTAutoStates
-        {
-            get => Settings.Instance.PTAutoStates;
-            set
-            {
-                Settings.Instance.PTAutoStates = value;
-                Settings.Save();
-            }
-        }
-        public static bool ObjectFunctionDefs
-        {
-            get => Settings.Instance.ObjectFunctionDefs;
-            set
-            {
-                Settings.Instance.ObjectFunctionDefs = value;
-                Settings.Save();
-            }
-        }
-
         public static bool ProfileMessageShown
         {
             get => Settings.Instance.ProfileMessageShown;
@@ -117,6 +90,22 @@ namespace UndertaleModTool
             {
                 Settings.Instance.AutomaticFileAssociation = value;
                 Settings.Save();
+
+                if (!value && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // Prompt user if they want to unassociate
+                    if (mainWindow.ShowQuestion("Remove current file associations, if they exist?", MessageBoxImage.Question, "File associations") == MessageBoxResult.Yes)
+                    {
+                        try
+                        {
+                            FileAssociations.RemoveAssociations();
+                        }
+                        catch (Exception ex)
+                        {
+                            mainWindow.ScriptError(ex.ToString(), "Unassociation failed", false);
+                        }
+                    }
+                }
             }
         }
 
@@ -259,6 +248,18 @@ namespace UndertaleModTool
             }
         }
 
+        public static DecompilerSettings DecompilerSettings => Settings.Instance.DecompilerSettings;
+
+        public static string InstanceIdPrefix
+        {
+            get => Settings.Instance.InstanceIdPrefix;
+            set
+            {
+                Settings.Instance.InstanceIdPrefix = value;
+                Settings.Save();
+            }
+        }
+
         public bool UpdateButtonEnabled
         {
             get => UpdateAppButton.IsEnabled;
@@ -271,6 +272,7 @@ namespace UndertaleModTool
             this.DataContext = this;
             Settings.Load();
         }
+
         private void Window_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             if (!IsVisible || IsLoaded)
@@ -288,6 +290,14 @@ namespace UndertaleModTool
         private void UpdateAppButton_Click(object sender, RoutedEventArgs e)
         {
             ((MainWindow)Owner).UpdateApp(this);
+        }
+
+        private void GMLSettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            GMLSettingsWindow settings = new(Settings.Instance);
+            settings.Owner = this;
+            settings.ShowDialog();
+            Settings.Save();
         }
     }
 }
