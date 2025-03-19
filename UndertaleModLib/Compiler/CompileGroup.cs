@@ -6,6 +6,7 @@ using Underanalyzer.Compiler.Bytecode;
 using Underanalyzer.Compiler.Errors;
 using UndertaleModLib.Decompiler;
 using UndertaleModLib.Models;
+using UndertaleModLib.Util;
 
 namespace UndertaleModLib.Compiler;
 
@@ -40,6 +41,16 @@ public sealed class CompileGroup
     public bool PersistLinkingLookups { get; set; } = false;
 
     /// <summary>
+    /// Hash code of the name of the current code entry being compiled.
+    /// </summary>
+    internal int CurrentCodeEntryNameHash { get; private set; }
+
+    /// <summary>
+    /// During main compile (not linking), this is the next try variable index that should be used.
+    /// </summary>
+    internal int NextTryVariableIndex { get; set; } = 0;
+
+    /// <summary>
     /// Stores a code entry and corresponding GML code to be compiled during an operation.
     /// </summary>
     private readonly record struct QueuedOperation(UndertaleCode CodeEntry, string Code);
@@ -65,7 +76,7 @@ public sealed class CompileGroup
     private Dictionary<string, UndertaleFunction> _linkingFunctionLookup = null;
 
     // During linking, a lookup of script names to scripts.
-    private Dictionary<string, UndertaleScript> _linkingScriptLookup = null;
+    private Dictionary<string, List<UndertaleScript>> _linkingScriptLookup = null;
 
     // During linking, a unique number to use for struct variables.
     private int _linkingStructCounter = -1;
@@ -79,7 +90,11 @@ public sealed class CompileGroup
     private List<(string Name, bool IsEverLocal)> _linkingVariableOrder = null;
 
     // During linking, a lookup of local variable names to references of those local variables.
-    private Dictionary<string, List<UndertaleInstruction.Reference<UndertaleVariable>>> _linkingLocalReferences = null;
+    private Dictionary<string, List<UndertaleInstruction>> _linkingLocalReferences = null;
+
+    // During main compile (not linking), and when array copy-on-write is enabled, this is a lookup of name to ID.
+    private int _nextNameId = 100000;
+    private Dictionary<string, int> _parsedNameIds = null;
 
     /// <summary>
     /// Initializes a new compile context.
@@ -172,10 +187,10 @@ public sealed class CompileGroup
     /// <summary>
     /// Registers a local variable during linking, queuing the reference to be patched later.
     /// </summary>
-    internal void RegisterLocalVariable(UndertaleInstruction.Reference<UndertaleVariable> reference, string name)
+    internal void RegisterLocalVariable(UndertaleInstruction reference, string name)
     {
         // Queue reference to be patched later
-        if (!_linkingLocalReferences.TryGetValue(name, out List<UndertaleInstruction.Reference<UndertaleVariable>> referenceList))
+        if (!_linkingLocalReferences.TryGetValue(name, out List<UndertaleInstruction> referenceList))
         {
             referenceList = new(16);
             _linkingLocalReferences[name] = referenceList;
@@ -197,6 +212,18 @@ public sealed class CompileGroup
             _linkingVariableOrderLookup.Add(name, _linkingVariableOrder.Count);
             _linkingVariableOrder.Add((name, true));
         }
+    }
+
+    /// <summary>
+    /// Registers a name token during initial main compile/parse, and returns its ID.
+    /// </summary>
+    internal int RegisterName(string name)
+    {
+        if (_parsedNameIds.TryGetValue(name, out int id))
+        {
+            return id;
+        }
+        return _parsedNameIds[name] = _nextNameId++;
     }
 
     /// <summary>
@@ -314,6 +341,19 @@ public sealed class CompileGroup
         return originalName[startOriginalPos..originalPos];
     }
 
+    // Helper during linking, to track data correctly.
+    private record CodeEntryNameGroup
+    {
+        public Queue<UndertaleCode> RemainingOriginalEntries { get; init; }
+        public int EntriesUsed { get; set; }
+
+        public CodeEntryNameGroup(Queue<UndertaleCode> originalEntries, int entriesUsed)
+        {
+            RemainingOriginalEntries = originalEntries;
+            EntriesUsed = entriesUsed;
+        }
+    }
+
     /// <summary>
     /// Performs all compilation operations that have been queued on this context.
     /// </summary>
@@ -337,11 +377,27 @@ public sealed class CompileGroup
         bool staticAnonymousNames = Data.IsVersionAtLeast(2024, 2);
         bool childFunctionNameFix = Data.IsVersionAtLeast(2024, 4);
 
+        // Mark this group as compiling
+        GlobalContext.CurrentCompileGroup = this;
+
         // Work through replacement queue
         foreach (QueuedOperation operation in _queuedCodeReplacements)
         {
             // Guess script kind and global script name, based on code entry name
             (CompileScriptKind scriptKind, string globalScriptName) = GuessScriptKindFromName(operation.CodeEntry.Name?.Content);
+
+            // Prepare data for main compile
+            CurrentCodeEntryNameHash = (int)MurmurHash.Hash(operation.CodeEntry.Name.Content);
+            if (linkingModern)
+            {
+                NextTryVariableIndex = Math.Max(0, operation.CodeEntry.FindFirstTryLocalIndex());
+
+                if (Data.ArrayCopyOnWrite)
+                {
+                    _parsedNameIds = new();
+                    _nextNameId = 100000;
+                }
+            }
 
             // Perform initial compile step
             CompileContext context = new(operation.Code, scriptKind, globalScriptName, GlobalContext);
@@ -367,6 +423,12 @@ public sealed class CompileGroup
                 errors.Add(new CompileError(operation.CodeEntry, e));
             }
 
+            // Un-prepare for array copy-on-write
+            if (Data.ArrayCopyOnWrite)
+            {
+                _parsedNameIds = null;
+            }
+
             // If any errors have occurred in general (even in other operations), don't proceed to linking
             if (errors is not null)
             {
@@ -378,16 +440,25 @@ public sealed class CompileGroup
             {
                 // Setup for linking
                 InitializeLinkingLookups();
-                GlobalContext.LinkingCompileGroup = this;
 
                 // Make list of reusable child code entry names (and set of child entries remaining)
                 List<string> originalChildEntryNames = new(operation.CodeEntry.ChildEntries.Count);
-                Dictionary<string, UndertaleCode> remainingChildEntries = new(operation.CodeEntry.ChildEntries.Count);
+                Dictionary<string, CodeEntryNameGroup> remainingChildEntries = new(operation.CodeEntry.ChildEntries.Count);
                 foreach (UndertaleCode childEntry in operation.CodeEntry.ChildEntries)
                 {
                     string currentChildName = childEntry.Name.Content;
                     originalChildEntryNames.Add(currentChildName);
-                    remainingChildEntries[currentChildName] = childEntry;
+                    if (remainingChildEntries.TryGetValue(currentChildName, out CodeEntryNameGroup existing))
+                    {
+                        existing.RemainingOriginalEntries.Enqueue(childEntry);
+                    }
+                    else
+                    {
+                        Queue<UndertaleCode> newQueue = new();
+                        CodeEntryNameGroup newGroup = new(newQueue, 0);
+                        newQueue.Enqueue(childEntry);
+                        remainingChildEntries[currentChildName] = newGroup;
+                    }
                 }
 
                 // Resolve function entries. Either pair up with existing child code entries, or make new ones.
@@ -492,16 +563,37 @@ public sealed class CompileGroup
                     for (int i = 0; i < originalChildEntryNames.Count; i++)
                     {
                         string originalEntryName = originalChildEntryNames[i];
-                        if (remainingChildEntries.TryGetValue(originalEntryName, out UndertaleCode originalCodeEntry) &&
+                        if (remainingChildEntries.TryGetValue(originalEntryName, out CodeEntryNameGroup originalCodeEntries) &&
                             SimilarCodeEntryNames(originalEntryName, codeEntryNameNoNumbers))
                         {
-                            // Names are similar enough - use this existing child
+                            // Names are similar enough - use this existing child.
                             codeEntryName = originalEntryName;
+
+                            // Try to find the original short name used in the code.
                             shortName = FindOriginalShortName(originalEntryName, shortNameNoNumbers);
-                            existingCodeEntry = newCodeEntry = originalCodeEntry;
-                            existingScript = newScript = _linkingScriptLookup[originalEntryName];
+
+                            // Take existing code entry (guaranteed to be here)
+                            existingCodeEntry = newCodeEntry = originalCodeEntries.RemainingOriginalEntries.Dequeue();
+
+                            // Try to take existing script, if available
+                            if (_linkingScriptLookup.TryGetValue(originalEntryName, out List<UndertaleScript> scripts) &&
+                                originalCodeEntries.EntriesUsed < scripts.Count)
+                            {
+                                // Pair up with next script index
+                                existingScript = newScript = scripts[originalCodeEntries.EntriesUsed];
+                            }
+
+                            // Try to take existing function, if available
                             existingFunction = newFunction = _linkingFunctionLookup[originalEntryName];
-                            remainingChildEntries.Remove(originalEntryName);
+
+                            // If all code entries from name group are taken, remove it from remaining lookup
+                            if (originalCodeEntries.RemainingOriginalEntries.Count == 0)
+                            {
+                                remainingChildEntries.Remove(originalEntryName);
+                            }
+
+                            // Increment number of original code entries used under this name group
+                            originalCodeEntries.EntriesUsed++;
                             break;
                         }
                     }
@@ -658,9 +750,9 @@ public sealed class CompileGroup
                             variable ??= Data.Variables.DefineLocal(Data, varId, localString, nameStringIndex);
 
                             // Update all references
-                            foreach (UndertaleInstruction.Reference<UndertaleVariable> reference in _linkingLocalReferences[name])
+                            foreach (UndertaleInstruction reference in _linkingLocalReferences[name])
                             {
-                                reference.Target = variable;
+                                reference.ValueVariable = variable;
                             }
                         }
                     }
@@ -670,9 +762,6 @@ public sealed class CompileGroup
                 _linkingVariableOrderLookup.Clear();
                 _linkingVariableOrder.Clear();
                 _linkingLocalReferences.Clear();
-
-                // Undo setup for linking
-                GlobalContext.LinkingCompileGroup = null;
 
                 // If any errors occurred, don't commit any further modifications to main data (avoid too much corruption)
                 if (errors is not null)
@@ -717,25 +806,37 @@ public sealed class CompileGroup
                 }
 
                 // Remove old child code entries/scripts/functions
-                foreach ((string name, UndertaleCode code) in remainingChildEntries)
+                foreach ((string name, CodeEntryNameGroup codeEntryNameGroup) in remainingChildEntries)
                 {
-                    // Remove code entry
-                    Data.Code.Remove(code);
-                    operation.CodeEntry.ChildEntries.Remove(code);
-
-                    // Remove script
-                    if (_linkingScriptLookup.TryGetValue(name, out UndertaleScript script))
+                    // Remove all remaining code entries associated with the given name
+                    while (codeEntryNameGroup.RemainingOriginalEntries.TryDequeue(out UndertaleCode code))
                     {
-                        Data.Scripts.Remove(script);
-                        _linkingScriptLookup.Remove(name);
+                        // Remove code entry
+                        Data.Code.Remove(code);
+                        operation.CodeEntry.ChildEntries.Remove(code);
+
+                        // Remove script at correct index, if possible
+                        if (_linkingScriptLookup.TryGetValue(name, out List<UndertaleScript> scripts) &&
+                            codeEntryNameGroup.EntriesUsed < scripts.Count)
+                        {
+                            Data.Scripts.Remove(scripts[codeEntryNameGroup.EntriesUsed]);
+                            scripts.RemoveAt(codeEntryNameGroup.EntriesUsed);
+                            if (scripts.Count == 0)
+                            {
+                                _linkingScriptLookup.Remove(name);
+                            }
+                        }
                     }
 
-                    // Remove function, as long as it's not a global function (since it could still be referenced)
-                    if (_linkingFunctionLookup.TryGetValue(name, out UndertaleFunction function) &&
-                        !Data.GlobalFunctions.FunctionExists(function))
+                    // If no entries were used, remove function, as long as it's not a global function (since it could still be referenced)
+                    if (codeEntryNameGroup.EntriesUsed == 0)
                     {
-                        Data.Functions.Remove(function);
-                        _linkingFunctionLookup.Remove(name);
+                        if (_linkingFunctionLookup.TryGetValue(name, out UndertaleFunction function) &&
+                            !Data.GlobalFunctions.FunctionExists(function))
+                        {
+                            Data.Functions.Remove(function);
+                            _linkingFunctionLookup.Remove(name);
+                        }
                     }
                 }
 
@@ -769,7 +870,14 @@ public sealed class CompileGroup
                     // Define script
                     if (!childData.ExistingScript)
                     {
-                        _linkingScriptLookup[childData.Name] = childData.Script;
+                        if (_linkingScriptLookup.TryGetValue(childData.Name, out List<UndertaleScript> existing))
+                        {
+                            existing.Add(childData.Script);
+                        }
+                        else
+                        {
+                            _linkingScriptLookup[childData.Name] = new() { childData.Script };
+                        }
                         Data.Scripts.Add(childData.Script);
                     }
 
@@ -798,6 +906,9 @@ public sealed class CompileGroup
                 operation.CodeEntry.LocalsCount = (uint)(1 + context.OutputRootScope.LocalCount);
             });
         }
+
+        // Unmark this group as compiling
+        GlobalContext.CurrentCompileGroup = null;
 
         // Clear queues
         _queuedCodeReplacements?.Clear();
@@ -854,7 +965,14 @@ public sealed class CompileGroup
                 UndertaleScript script = Data.Scripts[i];
                 if (script.Name?.Content is string name)
                 {
-                    _linkingScriptLookup[name] = script;
+                    if (_linkingScriptLookup.TryGetValue(name, out List<UndertaleScript> existing))
+                    {
+                        existing.Add(script);
+                    }
+                    else
+                    {
+                        _linkingScriptLookup[name] = new() { script };
+                    }
                 }
             }
         }

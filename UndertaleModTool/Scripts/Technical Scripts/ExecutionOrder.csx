@@ -257,11 +257,13 @@ void ProfileModeExempt()
     foreach (UndertaleCode c in Data.Code)
     {
         // global.interact get/set patches
+        uint addr = 0;
         for (int i = 0; i < c.Instructions.Count; i++)
         {
             UndertaleInstruction inst = c.Instructions[i];
+
             if (inst.Kind == UndertaleInstruction.Opcode.PushGlb &&
-                ((UndertaleInstruction.Reference<UndertaleVariable>)inst.Value).Target.Name.Content == "interact")
+                inst.ValueVariable.Target.Name.Content == "interact")
             {
                 // global.interact getter
                 c.Instructions[i] = new UndertaleInstruction()
@@ -269,11 +271,11 @@ void ProfileModeExempt()
                     Kind = UndertaleInstruction.Opcode.Call,
                     Type1 = UndertaleInstruction.DataType.Int32,
                     ArgumentsCount = 0,
-                    Function = new UndertaleInstruction.Reference<UndertaleFunction>() { Target = getInteractFunc }
+                    ValueFunction = new UndertaleInstruction.Reference<UndertaleFunction>() { Target = getInteractFunc }
                 };
             }
-            else if (inst.Kind == UndertaleInstruction.Opcode.Pop &&
-              ((UndertaleInstruction.Reference<UndertaleVariable>)inst.Destination).Target.Name.Content == "interact")
+            else if (inst.Kind == UndertaleInstruction.Opcode.Pop && 
+                     inst.ValueVariable.Target.Name.Content == "interact")
             {
                 // global.interact setter
                 c.Instructions[i] = new UndertaleInstruction()
@@ -292,30 +294,39 @@ void ProfileModeExempt()
                     Kind = UndertaleInstruction.Opcode.Call,
                     Type1 = UndertaleInstruction.DataType.Int32,
                     ArgumentsCount = 1,
-                    Function = new UndertaleInstruction.Reference<UndertaleFunction>() { Target = setInteractFunc }
+                    ValueFunction = new UndertaleInstruction.Reference<UndertaleFunction>() { Target = setInteractFunc }
                 });
 
                 // Now that instructions were inserted, adjust jump offsets in
                 // surrounding goto instructions to properly reflect that
+                uint adjustAddr = 0;
                 for (int j = 0; j < i; j++)
                 {
                     var currPatch = c.Instructions[j];
                     if (UndertaleInstruction.GetInstructionType(currPatch.Kind) == UndertaleInstruction.InstructionType.GotoInstruction)
                     {
-                        if (currPatch.Address + currPatch.JumpOffset > inst.Address)
+                        if (adjustAddr + currPatch.JumpOffset > addr)
                             currPatch.JumpOffset += 2;
                     }
+                    adjustAddr += currPatch.CalculateInstructionSize();
+                }
+                for (int j = i; j < i + 3; j++)
+                {
+                    adjustAddr += c.Instructions[i].CalculateInstructionSize();
                 }
                 for (int j = i + 3; j < c.Instructions.Count; j++)
                 {
                     var currPatch = c.Instructions[j];
                     if (UndertaleInstruction.GetInstructionType(currPatch.Kind) == UndertaleInstruction.InstructionType.GotoInstruction)
                     {
-                        if (currPatch.Address + currPatch.JumpOffset <= inst.Address)
+                        if (adjustAddr + currPatch.JumpOffset <= addr)
                             currPatch.JumpOffset -= 2;
                     }
+                    adjustAddr += currPatch.CalculateInstructionSize();
                 }
             }
+
+            addr += inst.CalculateInstructionSize();
         }
 
         if (c.Name.Content.StartsWith("gml_Object"))
@@ -328,7 +339,7 @@ void ProfileModeExempt()
                 {
                     Kind = UndertaleInstruction.Opcode.Push,
                     Type1 = UndertaleInstruction.DataType.String,
-                    Value = new UndertaleResourceById<UndertaleString, UndertaleChunkSTRG>() { Resource = newString, CachedId = Data.Strings.IndexOf(newString) }
+                    ValueString = new UndertaleResourceById<UndertaleString, UndertaleChunkSTRG>() { Resource = newString, CachedId = Data.Strings.IndexOf(newString) }
                 },
                 new UndertaleInstruction()
                 {
@@ -341,7 +352,7 @@ void ProfileModeExempt()
                     Kind = UndertaleInstruction.Opcode.Call,
                     Type1 = UndertaleInstruction.DataType.Int32,
                     ArgumentsCount = 1,
-                    Function = new UndertaleInstruction.Reference<UndertaleFunction>() { Target = func }
+                    ValueFunction = new UndertaleInstruction.Reference<UndertaleFunction>() { Target = func }
                 },
                 new UndertaleInstruction()
                 {
@@ -351,9 +362,13 @@ void ProfileModeExempt()
             });
 
             // Patch every exit instruction to instead branch to the end of the code
-            c.UpdateAddresses();
-            var last = c.Instructions.Last();
-            uint endAddr = last.Address + last.CalculateInstructionSize();
+            c.UpdateLength();
+            uint endAddr = c.Length / 4;
+            uint exitPatchAddr = 0;
+            for (int i = 0; i < 4; i++)
+            {
+                exitPatchAddr += c.Instructions[i].CalculateInstructionSize();
+            }
             for (int i = 4; i < c.Instructions.Count; i++)
             {
                 if (c.Instructions[i].Kind == UndertaleInstruction.Opcode.Exit)
@@ -361,9 +376,10 @@ void ProfileModeExempt()
                     c.Instructions[i] = new UndertaleInstruction()
                     {
                         Kind = UndertaleInstruction.Opcode.B,
-                        JumpOffset = (int)(endAddr - c.Instructions[i].Address)
+                        JumpOffset = (int)(endAddr - exitPatchAddr)
                     };
                 }
+                exitPatchAddr += c.Instructions[i].CalculateInstructionSize();
             }
 
             // At the end of the code, insert function call to __scr_eventend__
@@ -374,7 +390,7 @@ void ProfileModeExempt()
                     Kind = UndertaleInstruction.Opcode.Call,
                     Type1 = UndertaleInstruction.DataType.Int32,
                     ArgumentsCount = 0,
-                    Function = new UndertaleInstruction.Reference<UndertaleFunction>() { Target = endFunc }
+                    ValueFunction = new UndertaleInstruction.Reference<UndertaleFunction>() { Target = endFunc }
                 },
                 new UndertaleInstruction()
                 {
@@ -382,6 +398,7 @@ void ProfileModeExempt()
                     Type1 = UndertaleInstruction.DataType.Variable
                 }
             });
+            c.UpdateLength();
         }
     }
 }
