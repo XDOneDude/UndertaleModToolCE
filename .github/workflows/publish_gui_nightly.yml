@@ -45,8 +45,8 @@ jobs:
         cp ./README.md ./${{ matrix.os }}
         cp ./SCRIPTS.md ./${{ matrix.os }}
         cp ./LICENSE.txt ./${{ matrix.os }}
-        cp -r ./UndertaleModLib/GameSpecificData/ ./${{ matrix.os }}/GameSpecificData/
-        cp -r ./PizzaTowerGameSpecificData/GameSpecificData/ ./${{ matrix.os }}/GameSpecificData/
+        cp -r ./UndertaleModLib/GameSpecificData/ ./${{ matrix.os }}/
+        cp -r ./PizzaTowerGameSpecificData/GameSpecificData/ ./${{ matrix.os }}/
         cp ./.disable_gb1click ./${{ matrix.os }}
     - name: Create zip for nightly release Windows GUI
       run: |

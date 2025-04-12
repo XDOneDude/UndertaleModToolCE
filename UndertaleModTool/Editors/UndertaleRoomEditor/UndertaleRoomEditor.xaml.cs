@@ -46,8 +46,6 @@ namespace UndertaleModTool
                 typeof(UndertaleRoomEditor),
                 new FrameworkPropertyMetadata(null));
 
-        public static RoutedUICommand PasteShiftCommand = new("Alternate paste command", "PasteShift", typeof(UndertaleRoomEditor));
-
         public static readonly PropertyInfo visualOffProp = typeof(Canvas).GetProperty("VisualOffset", BindingFlags.NonPublic | BindingFlags.Instance);
         private static readonly MainWindow mainWindow = Application.Current.MainWindow as MainWindow;
         private static readonly Regex trailingNumberRegex = new(@"\d+$", RegexOptions.Compiled);
