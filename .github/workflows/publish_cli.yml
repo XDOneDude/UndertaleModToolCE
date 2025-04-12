@@ -43,7 +43,7 @@ jobs:
         cp ./README.md ./CLI-${{ matrix.os }}/
         cp ./LICENSE.txt ./CLI-${{ matrix.os }}/
         cp -r ./UndertaleModLib/GameSpecificData/ ./CLI-${{ matrix.os }}/GameSpecificData/
-        cp -r ./PizzaTowerGameSpecificData/GameSpecificData/* -t ./CLI-${{ matrix.os }}/GameSpecificData/
+        cp -r ./PizzaTowerGameSpecificData/GameSpecificData/* -Force -Destination ./CLI-${{ matrix.os }}/GameSpecificData/
         cp ./.disable_gb1click ./CLI-${{ matrix.os }}/
     - name: Upload ${{ matrix.os }} CLI
       uses: actions/upload-artifact@v4
