@@ -44,7 +44,7 @@ jobs:
         cp ./SCRIPTS.md ./${{ matrix.os }}
         cp ./LICENSE.txt ./${{ matrix.os }}
         cp -r ./UndertaleModLib/GameSpecificData/ ./${{ matrix.os }}/GameSpecificData/
-        cp -r ./PizzaTowerGameSpecificData/GameSpecificData/* -Destination ./${{ matrix.os }}/GameSpecificData/
+        cp -r ./PizzaTowerGameSpecificData/GameSpecificData/* -Force -Destination ./${{ matrix.os }}/GameSpecificData/
         cp ./.disable_gb1click ./${{ matrix.os }}
     - name: Upload ${{ matrix.os }} GUI
       uses: actions/upload-artifact@v4
